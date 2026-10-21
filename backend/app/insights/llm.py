@@ -2,7 +2,8 @@
 
 The rule-based planner decides everything: the plays, the numbers, the evidence. This module only asks the model to
 rewrite the plan's text the way a coach would say it, strictly from the facts the planner produced. Safety:
-* off unless `VAVAGYM_LLM=1` and `ANTHROPIC_API_KEY` are set; the app is complete without it;
+* off unless `VAVAGYM_LLM=1` and a key (`GEMINI_API_KEY` from Google AI Studio, or `ANTHROPIC_API_KEY`) are set, in the
+  environment or in the git-ignored `<repo>/.env`; the app is complete without it;
 * every number in a rewritten field must already appear in that round's input (references like "R5" must point to a
   real round), otherwise that field keeps the template text;
 * any failure (network, timeout, bad JSON) leaves the plan untouched; results are cached on disk by input hash.
@@ -23,6 +24,8 @@ from ..schemas.plan import PlanResponse, RoundPlan
 
 API_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_MODEL = "claude-sonnet-5-5"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 CACHE_DIR = REPO_ROOT / ".cache" / "llm"
 
 SYSTEM = """Você é um analista de VALORANT que escreve o plano de um treinador em português do Brasil.
@@ -41,12 +44,42 @@ _NUM = re.compile(r"\d+(?:[.,]\d+)?")
 _ROUND_REF = re.compile(r"\bR\d+\b")
 
 
+def _load_dotenv() -> None:
+    """Read KEY=VALUE lines from `<repo>/.env` (git-ignored) into the environment; real env vars win. No dependency."""
+    path = REPO_ROOT / ".env"
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+
+
+_load_dotenv()
+
+
+def provider() -> str | None:
+    """'gemini' (Google AI Studio key) or 'anthropic', from VAVAGYM_LLM_PROVIDER or whichever key is present."""
+    forced = os.environ.get("VAVAGYM_LLM_PROVIDER", "").lower()
+    has_gemini = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+    has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    if forced == "gemini" and has_gemini or forced == "anthropic" and has_anthropic:
+        return forced
+    if forced:
+        return None
+    return "gemini" if has_gemini else "anthropic" if has_anthropic else None
+
+
 def enabled() -> bool:
-    return os.environ.get("VAVAGYM_LLM") == "1" and bool(os.environ.get("ANTHROPIC_API_KEY"))
+    return os.environ.get("VAVAGYM_LLM") == "1" and provider() is not None
 
 
 def model_name() -> str:
-    return os.environ.get("VAVAGYM_LLM_MODEL", DEFAULT_MODEL)
+    return os.environ.get("VAVAGYM_LLM_MODEL") or (DEFAULT_GEMINI_MODEL if provider() == "gemini" else DEFAULT_MODEL)
 
 
 # ---- number check -----------------------------------------------------------------------------------------------------
@@ -87,6 +120,15 @@ def _allowed(facts: dict) -> set[str]:
 
 # ---- API --------------------------------------------------------------------------------------------------------------
 def _complete(client, user: str) -> str:
+    if provider() == "gemini":
+        key = os.environ.get("GEMINI_API_KEY") or os.environ["GOOGLE_API_KEY"]
+        resp = client.post(GEMINI_URL.format(model=model_name()), headers={"x-goog-api-key": key, "content-type": "application/json"},
+                           json={"systemInstruction": {"parts": [{"text": SYSTEM}]},
+                                 "contents": [{"role": "user", "parts": [{"text": user}]}],
+                                 "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 8000, "temperature": 0.4}})
+        resp.raise_for_status()
+        parts = resp.json()["candidates"][0]["content"]["parts"]
+        return "".join(p.get("text", "") for p in parts)
     resp = client.post(API_URL, headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
                                          "content-type": "application/json"},
                        json={"model": model_name(), "max_tokens": 6000, "system": SYSTEM,
@@ -127,7 +169,7 @@ def _rewrite_half(client, plan: PlanResponse, rounds: list[RoundPlan], total_rou
              "inimigo": plan.team_b.name if plan.perspective == "a" else plan.team_a.name, "mapa": plan.map.name,
              "rounds": [round_facts(r) for r in rounds]}
     user = json.dumps(facts, ensure_ascii=False)
-    key = hashlib.sha256(f"{model_name()}|{SYSTEM}|{user}".encode()).hexdigest()
+    key = hashlib.sha256(f"{provider()}|{model_name()}|{SYSTEM}|{user}".encode()).hexdigest()
 
     def call():
         try:

@@ -38,6 +38,8 @@ class FakeClient:
 
 @pytest.fixture(autouse=True)
 def env(monkeypatch, tmp_path):
+    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "VAVAGYM_LLM_PROVIDER", "VAVAGYM_LLM_MODEL"):
+        monkeypatch.delenv(k, raising=False)  # a developer's real .env must not leak into the tests
     monkeypatch.setenv("VAVAGYM_LLM", "1")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setattr(llm, "CACHE_DIR", tmp_path / "llm")
@@ -48,7 +50,43 @@ def test_disabled_without_flag_or_key(monkeypatch):
     assert not llm.enabled()
     monkeypatch.setenv("VAVAGYM_LLM", "1")
     monkeypatch.delenv("ANTHROPIC_API_KEY")
-    assert not llm.enabled()
+    assert not llm.enabled() and llm.provider() is None
+
+
+def test_provider_follows_the_key_that_is_present(monkeypatch):
+    assert llm.provider() == "anthropic"
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    assert llm.provider() == "gemini" and llm.model_name().startswith("gemini")
+    monkeypatch.setenv("VAVAGYM_LLM_PROVIDER", "anthropic")
+    assert llm.provider() == "anthropic"
+
+
+def test_gemini_request_and_response_shape(monkeypatch, plan):
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    monkeypatch.delenv("ANTHROPIC_API_KEY")
+    seen = {}
+
+    class GeminiClient:
+        def post(self, url, headers=None, json=None):  # noqa: A002
+            seen.update(url=url, headers=headers, body=json)
+            return type("R", (), {"raise_for_status": lambda s: None,
+                                  "json": lambda s: {"candidates": [{"content": {"parts": [{"text": _answer_for(plan)}]}}]}})()
+
+    out = llm.narrate(plan, client=GeminiClient())
+    assert "generativelanguage.googleapis.com" in seen["url"] and seen["headers"]["x-goog-api-key"] == "g"
+    assert seen["body"]["generationConfig"]["responseMimeType"] == "application/json"
+    assert out.text_source == "llm" and out.rounds[0].strategy.summary_pt.endswith("Jogue junto.")
+
+
+def test_dotenv_is_read_without_overriding_real_env(monkeypatch, tmp_path):
+    (tmp_path / ".env").write_text("# comment\nGEMINI_API_KEY='from-file'\nVAVAGYM_LLM_MODEL=gemini-x\n")
+    monkeypatch.setattr(llm, "REPO_ROOT", tmp_path)
+    monkeypatch.setenv("VAVAGYM_LLM_MODEL", "kept")
+    llm._load_dotenv()
+    import os
+
+    assert os.environ["GEMINI_API_KEY"] == "from-file" and os.environ["VAVAGYM_LLM_MODEL"] == "kept"
+    monkeypatch.delenv("GEMINI_API_KEY")  # tidy: setdefault wrote it outside monkeypatch's tracking
 
 
 def test_number_check_is_format_tolerant():
