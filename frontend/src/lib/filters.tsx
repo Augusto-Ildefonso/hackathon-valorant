@@ -10,7 +10,7 @@ export interface Filters {
   period?: string;
 }
 
-const KEY = "spikelab.filters";
+const KEY = "vavagym.filters";
 
 function load(): Filters {
   try {

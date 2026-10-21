@@ -2,6 +2,8 @@
 
 An interactive dashboard that analyses real VALORANT match data (Brazilian university tournaments) for players, coaches/analysts and teams. Built for the SEMCOMP/AcadArena hackathon; final delivery **23/10/2026 23h59** (5-minute pitch video + working prototype).
 
+The product is called **VaváGym** (shown as "VAVÁGYM" in the sidebar; logo mark "V"). Use this name in UI, titles and docs.
+
 The product is **impartial**: there is no fixed "our team". The user picks any player, team, map or match, and picks the perspective explicitly where needed (e.g. Action Plan).
 
 ## Where to read what

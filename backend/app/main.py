@@ -13,7 +13,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Hackathon Valorant API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="VaváGym API", version="0.1.0", lifespan=lifespan)
 
 for module in (meta, players, teams, maps, matches, plan, assets):
     app.include_router(module.router)
