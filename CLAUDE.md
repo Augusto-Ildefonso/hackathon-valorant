@@ -41,6 +41,10 @@ Home (search, KPIs, leaderboards, recent matches) · Player Profile · Team Prof
 - **Before starting any task, read `.claude/plans/`** and find the stream/item the work belongs to. Do not redo anything already marked done, and do not touch files owned by another stream.
 - **Every commit must update the plan** in the same commit: mark finished items as done (`[x]` with date and short note), add newly discovered tasks, and record decisions or contract changes. A commit that changes code without updating the plan is incomplete.
 - If the plan and the code disagree, fix the plan first so nobody repeats work.
+- **The canonical plan is the one on `main`.** Worktrees and branches only hold copies.
+  - Before reading or editing the plan, sync with `main` (`git fetch origin && git rebase origin/main`, or read `git show origin/main:.claude/plans/mvp-plan.md`).
+  - Plan updates must reach `main` as soon as they exist: either inside the code commit/PR that is merged to `main` right after, or as a plan-only commit pushed straight to `main` (fast-forward, never force). Never leave a plan change only in a worktree or an unmerged branch.
+  - After merging, `git pull` in the main checkout so everyone reads the same version.
 
 ## Conventions
 - Persist new plans and roadmaps in `.claude/plans/<feature>-plan.md`.
