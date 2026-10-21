@@ -1,11 +1,19 @@
 """App wiring. Owner: Stream A (others request router registration via a one-line PR)."""
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .deps import CATALOG_DIR
+from .deps import CATALOG_DIR, get_store
 from .routers import maps, matches, meta, plan, players, teams
 
-app = FastAPI(title="Hackathon Valorant API", version="0.1.0")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    get_store()  # load (or read the disk cache of) every JSON in data/ before serving
+    yield
+
+
+app = FastAPI(title="Hackathon Valorant API", version="0.1.0", lifespan=lifespan)
 
 for module in (meta, players, teams, maps, matches, plan):
     app.include_router(module.router)

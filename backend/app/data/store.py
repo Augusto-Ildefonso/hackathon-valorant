@@ -6,7 +6,7 @@ Analytics modules (B, C, D) must depend only on this class, never on the raw JSO
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pandas as pd
 
@@ -21,6 +21,32 @@ class Store:
     round_player_stats: pd.DataFrame
     kills: pd.DataFrame
     damage: pd.DataFrame
+    skipped: list[dict] = field(default_factory=list)  # files the loader could not map to teams (logged, never fatal)
+
+    # ---- filtering ---------------------------------------------------------------------------------------------
+    def subset(self, match_ids) -> "Store":
+        ids = set(match_ids)
+        return Store(
+            *(getattr(self, t)[getattr(self, t).match_id.isin(ids)] for t in
+              ("matches", "match_players", "rounds", "round_player_stats", "kills", "damage")),
+            skipped=self.skipped,
+        )
+
+    def where(self, tournament: str | None = None, map_name: str | None = None, date_from: str | None = None,
+              date_to: str | None = None, team: str | None = None) -> "Store":
+        """Global filters (tournament code or folder name, public map name, ISO dates, team name). No-op if all None."""
+        m = self.matches
+        if tournament:
+            m = m[(m.tournament_code == tournament) | (m.tournament == tournament)]
+        if map_name:
+            m = m[m.map_name == map_name]
+        if date_from:
+            m = m[m.date >= date_from]
+        if date_to:
+            m = m[m.date <= date_to]
+        if team:
+            m = m[(m.team_a == team) | (m.team_b == team)]
+        return self if len(m) == len(self.matches) else self.subset(m.match_id)
 
     # ---- lookups -----------------------------------------------------------------------------------------------
     def team_of(self, match_id: str, puuid: str) -> str | None:

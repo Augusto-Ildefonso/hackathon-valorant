@@ -9,7 +9,9 @@ Conventions
 - `team_color` is `Red`/`Blue`; `team_name` comes from the filename (see "Team mapping"). **Always prefer `team_name`**.
 - "Empty" is `None` (never `""`, `0` or `(0,0)`): no plant => `plant_*` are `None`; no armor => `armor_id` is `None`.
 - Observers (`isObserver`) are dropped everywhere. Coordinates are raw game units (use `coords.py` to get 0..1 minimap points).
-- IDs (`agent_id`, `weapon_id`, `armor_id`) are the raw UUIDs, resolved to names only at the API edge via `catalog.py`.
+- IDs (`agent_id`, `weapon_id`, `armor_id`, UUID `damage_item`) are **lower-case** UUIDs (catalog IDs and image names are upper-case; `catalog.py` normalizes), resolved to names only at the API edge.
+- pandas stores a missing string as `NaN`: convert with `isinstance(x, str)` / `pd.isna` before building API models.
+- `team_name` is the display name (`Fatec PG`, from `filenames.display_name`); `Store.skipped` lists files the loader could not map (empty today).
 
 ## matches (one row per map)
 | column | dtype | notes |
@@ -24,6 +26,9 @@ Conventions
 | score_a, score_b | int | filename score |
 | red_team, blue_team | str | which name is Red / Blue (matched via `teams[].roundsWon`) |
 | source_file | str | file name |
+| tournament_code | str | filename prefix without phase: `RUSHE`, `RUSH2`, `RUSH_INCLUSIVO`, `UNIVAVA` (the API tournament `id`) |
+| series_no | int | match number without the `a/b/c` suffix (maps of one series share it) |
+| winner_team | str | name of the team that won the map |
 
 ## match_players (one row per player per map, observers excluded)
 `match_id, puuid, riot_id ("name#tag"), team_color, team_name, agent_id (str|None), score, rounds_played, kills, deaths, assists, grenade_casts, ability1_casts, ability2_casts, ultimate_casts` (ints).
@@ -36,14 +41,14 @@ Conventions
 | result / result_code | str / str\|None | `Bomb defused`, `Eliminated`, ... |
 | ceremony | str | `CeremonyDefault`, `CeremonyClutch`, `Flawless`, `Thrifty`, ... |
 | winning_color / winning_team | str | |
-| attacker_color / attacker_team / defender_team | str | from `winningTeamRole` (halftime and overtime already resolved) |
+| attacker_color / defender_color / attacker_team / defender_team | str | from `winningTeamRole` (halftime and overtime already resolved) |
 | planter, defuser | str\|None | puuid; `None` when no plant/defuse |
 | plant_site | str\|None | `A`/`B`/`C` |
 | plant_time_ms, defuse_time_ms | int\|None | time within the round |
 | plant_x, plant_y | int\|None | game units |
 
 ## round_player_stats (one row per player per round)
-`match_id, round_num, puuid, team_color, side ("attack"|"defense"), score, loadout_value, spent, remaining, weapon_id (str|None), armor_id (str|None), damage_dealt, headshots, bodyshots, legshots, kills_n` (ints). Derived buy type per player/team comes from `metrics` (never recomputed elsewhere).
+`match_id, round_num, puuid, team_color, team_name, side ("attack"|"defense"), score, loadout_value, spent, remaining, weapon_id (str|None), armor_id (str|None), damage_dealt, headshots, bodyshots, legshots, kills_n` (ints). Derived buy type per player/team comes from `metrics` (never recomputed elsewhere).
 
 ## kills (one row per kill)
 | column | dtype | notes |

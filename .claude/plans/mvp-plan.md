@@ -7,18 +7,18 @@
 - [x] Phase 0: Pydantic schemas + contract fixtures + mock layer (2026-10-21, 13 endpoints in `schemas/`, fixtures in `contract/fixtures/` via `contract/make_fixtures.py`, `frontend/src/api/{types,client,hooks,mock}.ts`, contract test; every router already answers with its fixture)
 - [x] Phase 0: data SCHEMA.md + metrics SPEC.md + mini test store (2026-10-21, `Store` in `data/store.py`, `tests/fixtures/mini_store.py` builds from 3 real files, 6 invariant tests)
 - [x] Phase 0: design-system stubs + CONTRIBUTING.md (2026-10-21, `components/ui/*`, `MinimapCanvas` with frozen props, 6 page stubs, Tailwind tokens from the Figma variables)
-- [ ] A: filenames parser (tested on all files)
-- [ ] A: loader + cache + team/colour mapping
-- [ ] A: catalog + coords (validated on minimaps)
-- [ ] A: metrics implementation
-- [ ] A: meta/search/leaderboards/matches endpoints
+- [x] A: filenames parser (tested on all files) (2026-10-21, all 336 parse incl. `a/b/c` series suffixes and `RUSH_INCLUSIVO`/`UNIVAVA_C1` prefixes; `data/filenames.py`)
+- [x] A: loader + cache + team/colour mapping (2026-10-21, `data/loader.py`: parallel parse, roster-vote fallback, pickle cache in `.cache/`; cold load ~1 s, cached 0.2 s; totals equal data-report: 336 maps / 6,618 rounds / 46,753 kills / 80,071 damage; 411 distinct playing puuids (413 in the report includes observers))
+- [x] A: catalog + coords (validated on minimaps) (2026-10-21, `data/catalog.py`, `data/coords.py`; plants fall inside the bombsites on Ascent/Lotus/Haven/Split, image in `docs/coords-check.png`, script `backend/scripts/check_coords.py`)
+- [x] A: metrics implementation (2026-10-21, `app.metrics`: events, players, rounds, objective; see SPEC.md "Where each metric lives"; buy-type thresholds calibrated)
+- [x] A: meta/search/leaderboards/matches endpoints (2026-10-21, real implementations in `routers/meta.py`, store preloaded at startup)
 - [ ] B: players analytics + roles + endpoint + PlayerPage
 - [ ] B: teams analytics + endpoint + TeamPage
 - [ ] C: maps + heatmaps + blind-spot layers + endpoints
 - [ ] C: match report + kill replay + endpoints
 - [ ] C: MinimapCanvas + MapPage + MatchPage
 - [ ] D: insight engine + rules (player/team/match)
-- [ ] A: round-type transition, projected economy and round win probability metrics (needed by D)
+- [x] A: round-type transition, projected economy and round win probability metrics (needed by D) (2026-10-21, `metrics/rounds.py`: `team_rounds`, `next_type_distribution`, `projected_economy`, `round_win_probability`; economy model checked against real credits, median error < 400)
 - [ ] D: action plan backend (round-by-round, predicted round type per round, contingencies) + endpoint + ActionPlanPage
 - [x] Design: initial Figma frontend (6 screens + components), Action Plan redesigned to round-by-round (2026-10-20)
 - [ ] D: optional LLM polish (flagged)
@@ -37,6 +37,8 @@ What exists now: runnable backend + frontend skeletons, the frozen contract, fix
 - **Buy-type thresholds** in `metrics/SPEC.md` are defaults (eco < 1600, semi-eco < 2900, force < 3900 or spent > 80%, full buy ≥ 3900); A calibrates on the data and updates that table.
 - **Frontend:** Tailwind v4 pinned at 4.1.18 (4.0.0 crashes the Vite production build). Design tokens in `src/index.css` mirror the Figma variables. `MinimapCanvas` props are frozen (stub draws heat/points/lines/routes; C owns the body).
 - **Fixtures** are shape examples (made-up numbers on real team/map names). Regenerate with `make fixtures`; changing a shape is a contract PR.
+- **Stream A hand-off (2026-10-21):** the real Store and metrics are ready. Replace `build_mini_store` in your tests with the session fixture `full_store` (`tests/conftest.py`, cached load) or keep the mini store for fast unit tests; use `from app.deps import get_store` in routers and `store.where(...)` for the global filters. Metrics: `from app.metrics import ...` (SPEC.md lists them). Contract additions are additive only (`matches.tournament_code/series_no/winner_team`, `rounds.defender_color`, `round_player_stats.team_name`, `Store.skipped`, `Store.where/subset`). `team_name` is the display name derived from the filename slug (`ufg_gc_eagles` -> `UFG GC Eagles`); the same team spelled differently across tournaments is NOT merged.
+- **Known data limits:** 3 observer-only puuids and 68 team names (the same club can appear as separate team names, e.g. `Azure Bears Black/Golden/Silver/White` are distinct teams on purpose). Armor IDs have no names (use loadout value to tell light vs heavy if needed).
 - **Not done in Phase 0 (by design):** real loader, filenames parser, catalog/coords, metrics code, Playwright, global filter context (E).
 
 ## Context
