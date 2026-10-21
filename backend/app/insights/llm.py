@@ -113,7 +113,10 @@ def _allowed(facts: dict) -> set[str]:
 RETRY_STATUS = (429, 500, 502, 503, 504)  # overload / rate limits are usually temporary
 RETRY_WAIT_S = (2, 5)
 CHUNK = 6  # rounds per model call
-GEMINI_FALLBACKS = ("gemini-flash-latest", "gemini-3.5-flash", "gemini-3-flash-preview")  # tried in order unless a model is forced
+# Tried in order unless a model is forced. Benchmarked on a real 6-round chunk (2026-10-21): gemini-3-flash-preview 16 s,
+# gemma-4-31b-it 88 s, gemma-4-26b-a4b-it 132 s, all returning valid JSON with 0 rejected numbers; the Gemma models have a
+# separate quota pool, so they keep the feature alive when the Gemini ones are exhausted or overloaded (429/503), only slower.
+GEMINI_FALLBACKS = ("gemini-3-flash-preview", "gemini-flash-latest", "gemini-3.5-flash", "gemma-4-31b-it", "gemma-4-26b-a4b-it")
 
 
 def gemini_models() -> list[str]:
@@ -145,7 +148,7 @@ def _complete(client, user: str) -> str:
         try:
             resp = _post(client, GEMINI_URL.format(model=model), {"x-goog-api-key": key, "content-type": "application/json"}, body)
             parts = resp.json()["candidates"][0]["content"]["parts"]
-            return "".join(p.get("text", "") for p in parts)
+            return "".join(p.get("text", "") for p in parts if not p.get("thought"))
         except Exception as e:
             status = getattr(getattr(e, "response", None), "status_code", None)
             log.warning("Gemini model %s failed: %s", model, describe_error(e))
