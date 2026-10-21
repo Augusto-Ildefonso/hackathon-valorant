@@ -1,0 +1,92 @@
+{
+  "match_id": "aaac8e08-a406-498d-bd39-342a6a2f9aeb",
+  "map": {
+    "codename": "Ascent",
+    "name": "Ascent",
+    "has_minimap": true,
+    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+  },
+  "has_minimap": true,
+  "teams": {
+    "a": {
+      "name": "Fatec PG"
+    },
+    "b": {
+      "name": "Panterão Gaming"
+    }
+  },
+  "kills": [
+    {
+      "id": "1-0",
+      "round": 1,
+      "time_ms": 29484,
+      "killer": {
+        "puuid": "puuid-0002",
+        "riot_id": "ESCkey#BR1",
+        "team": "b",
+        "agent": {
+          "id": "320B2A48-4D9B-A075-30F1-1F93A9B638FA",
+          "name": "Sova",
+          "name_inferred": false,
+          "icon_url": "/assets/Characters/320B2A48-4D9B-A075-30F1-1F93A9B638FA_small.png"
+        },
+        "pos": {
+          "x": 0.61,
+          "y": 0.33
+        },
+        "view_radians": 3.29
+      },
+      "victim": {
+        "puuid": "puuid-0001",
+        "riot_id": "Didado#BR1",
+        "team": "a",
+        "agent": {
+          "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
+          "name": "Jett",
+          "name_inferred": false,
+          "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+        },
+        "pos": {
+          "x": 0.42,
+          "y": 0.3
+        },
+        "view_radians": 1.1
+      },
+      "assistants": [],
+      "weapon": {
+        "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+        "name": "Vandal",
+        "name_inferred": false,
+        "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+      },
+      "damage_type": "weapon",
+      "headshot": null,
+      "others_alive": [
+        {
+          "puuid": "puuid-0003",
+          "riot_id": "Vani#BR1",
+          "team": "b",
+          "agent": {
+            "id": "EFBA5359-0000-0000-0000-000000000000",
+            "name": null,
+            "name_inferred": false,
+            "icon_url": null
+          },
+          "pos": {
+            "x": 0.55,
+            "y": 0.4
+          },
+          "view_radians": 0.3
+        },
+        {
+          "puuid": "puuid-0099",
+          "riot_id": "Out#BR1",
+          "team": "a",
+          "agent": null,
+          "pos": null,
+          "view_radians": null
+        }
+      ]
+    }
+  ]
+}

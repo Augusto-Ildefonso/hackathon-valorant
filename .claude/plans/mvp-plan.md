@@ -3,10 +3,10 @@
 > After approval, copy this file to `.claude/plans/mvp-plan.md` in the repo (per global CLAUDE.md) and keep it updated as streams complete.
 
 ## Progress tracker (update in EVERY commit; format: `[x] item (YYYY-MM-DD, note)`)
-- [ ] Phase 0: repo skeleton (backend + frontend, `make dev`)
-- [ ] Phase 0: Pydantic schemas + contract fixtures + mock layer
-- [ ] Phase 0: data SCHEMA.md + metrics SPEC.md + mini test store
-- [ ] Phase 0: design-system stubs + CONTRIBUTING.md
+- [x] Phase 0: repo skeleton (backend + frontend, `make dev`) (2026-10-21, FastAPI + Vite/React/Tailwind; `make setup`, `make dev`, `make dev-mock`, `make test`; Vite proxies `/api` and `/assets`)
+- [x] Phase 0: Pydantic schemas + contract fixtures + mock layer (2026-10-21, 13 endpoints in `schemas/`, fixtures in `contract/fixtures/` via `contract/make_fixtures.py`, `frontend/src/api/{types,client,hooks,mock}.ts`, contract test; every router already answers with its fixture)
+- [x] Phase 0: data SCHEMA.md + metrics SPEC.md + mini test store (2026-10-21, `Store` in `data/store.py`, `tests/fixtures/mini_store.py` builds from 3 real files, 6 invariant tests)
+- [x] Phase 0: design-system stubs + CONTRIBUTING.md (2026-10-21, `components/ui/*`, `MinimapCanvas` with frozen props, 6 page stubs, Tailwind tokens from the Figma variables)
 - [ ] A: filenames parser (tested on all files)
 - [ ] A: loader + cache + team/colour mapping
 - [ ] A: catalog + coords (validated on minimaps)
@@ -28,8 +28,19 @@
 - [ ] F: pitch script, showcase entities, recording, submission
 - [ ] Catalog-usage confirmation from organizers (Discord ticket)
 
+## Phase 0 outcome and decisions (2026-10-21; streams can start from here)
+What exists now: runnable backend + frontend skeletons, the frozen contract, fixtures, the `Store` schema with a mini store, metric specs and UI stubs. Every endpoint **already returns its fixture**, so each stream replaces its router body instead of creating routes.
+- **How to start a stream:** `make setup`, then `make dev` (or `make dev-mock` for frontend-only). Backend tests: `make test`.
+- **Routers:** `routers/meta.py` (A: meta, search, leaderboards, `/api/matches` list), `players.py`+`teams.py` (B), `maps.py` (C), `matches.py` (C: detail + kills), `plan.py` (D). Keep `response_model` as is; the contract test fails if a body drifts.
+- **Insight engine:** entry points `for_player / for_team / for_match / for_map` exist in `insights/engine.py` returning `[]`; D owns the file from now on, signatures are frozen.
+- **Store:** analytics code uses `app.data.store.Store` only. `tests/fixtures/mini_store.py::build_mini_store()` gives a real 3-match store (a few seconds to build; cache it in a module-scoped fixture). Stream A's `loader.py` must produce identical tables (`SCHEMA.md`).
+- **Buy-type thresholds** in `metrics/SPEC.md` are defaults (eco < 1600, semi-eco < 2900, force < 3900 or spent > 80%, full buy ≥ 3900); A calibrates on the data and updates that table.
+- **Frontend:** Tailwind v4 pinned at 4.1.18 (4.0.0 crashes the Vite production build). Design tokens in `src/index.css` mirror the Figma variables. `MinimapCanvas` props are frozen (stub draws heat/points/lines/routes; C owns the body).
+- **Fixtures** are shape examples (made-up numbers on real team/map names). Regenerate with `make fixtures`; changing a shape is a contract PR.
+- **Not done in Phase 0 (by design):** real loader, filenames parser, catalog/coords, metrics code, Playwright, global filter context (E).
+
 ## Context
-Hackathon deadline is **Fri 23/10/2026 23h59** (today is Tue 20/10, so ~3.5 working days). Scope is fixed in `.claude/docs/project-details.md`: 6 screens (Home, Player, Team, Map, Match Report, Action Plan), impartial (no "our team"), FastAPI + pandas in-memory backend, React/Vite/Tailwind dark frontend, rule-based insights with evidence. The repo currently has docs, `data/` and `public_catalog/` only, no code.
+Hackathon deadline is **Fri 23/10/2026 23h59** (today is Tue 20/10, so ~3.5 working days). Scope is fixed in `.claude/docs/project-details.md`: 6 screens (Home, Player, Team, Map, Match Report, Action Plan), impartial (no "our team"), FastAPI + pandas in-memory backend, React/Vite/Tailwind dark frontend, rule-based insights with evidence. The repo started with docs, `data/` and `public_catalog/` only; Phase 0 added the skeletons and contract (see above).
 
 Builders are a mix of humans and Claude sessions working at the same time. The plan therefore minimizes coupling with three rules:
 1. **Contract first:** a short Phase 0 freezes the API contract, fixtures, data-frame schema and folder layout, so every stream can work against mocks from hour one.

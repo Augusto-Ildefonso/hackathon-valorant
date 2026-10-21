@@ -1,0 +1,110 @@
+{
+  "map": {
+    "codename": "Ascent",
+    "name": "Ascent",
+    "has_minimap": true,
+    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+  },
+  "matches": 86,
+  "rounds": 1730,
+  "attack_win_rate": {
+    "value": 0.47,
+    "sample_size": 1730,
+    "low_sample": false
+  },
+  "defense_win_rate": {
+    "value": 0.53,
+    "sample_size": 1730,
+    "low_sample": false
+  },
+  "classification": "defense",
+  "top_agents": [
+    {
+      "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
+      "name": "Jett",
+      "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png",
+      "picks": 160,
+      "share": 0.19
+    }
+  ],
+  "top_weapons": [
+    {
+      "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+      "name": "Vandal",
+      "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png",
+      "picks": 5100,
+      "share": 0.41
+    }
+  ],
+  "sites": [
+    {
+      "site": "A",
+      "plants": 600,
+      "plant_rate": {
+        "value": 0.52,
+        "sample_size": 1150,
+        "low_sample": false
+      },
+      "defuse_rate": {
+        "value": 0.27,
+        "sample_size": 600,
+        "low_sample": false
+      },
+      "retake_rate": {
+        "value": 0.31,
+        "sample_size": 600,
+        "low_sample": false
+      }
+    },
+    {
+      "site": "B",
+      "plants": 550,
+      "plant_rate": {
+        "value": 0.48,
+        "sample_size": 1150,
+        "low_sample": false
+      },
+      "defuse_rate": {
+        "value": 0.24,
+        "sample_size": 550,
+        "low_sample": false
+      },
+      "retake_rate": {
+        "value": 0.28,
+        "sample_size": 550,
+        "low_sample": false
+      }
+    }
+  ],
+  "plants": [
+    {
+      "site": "A",
+      "point": {
+        "x": 0.68,
+        "y": 0.31
+      }
+    },
+    {
+      "site": "B",
+      "point": {
+        "x": 0.27,
+        "y": 0.62
+      }
+    }
+  ],
+  "insights": [
+    {
+      "id": "map-defense",
+      "kind": "strategy",
+      "text_pt": "Mapa favorece a defesa.",
+      "low_sample": false,
+      "evidence": {
+        "metric": "defense_win_rate",
+        "value": 0.53,
+        "baseline": 0.5,
+        "sample_size": 1730,
+        "unit": "ratio"
+      }
+    }
+  ]
+}

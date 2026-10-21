@@ -1,0 +1,223 @@
+{
+  "player": {
+    "puuid": "puuid-0001",
+    "riot_id": "Didado#BR1"
+  },
+  "teams": [
+    {
+      "name": "Fatec PG"
+    }
+  ],
+  "favorite_agent": {
+    "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
+    "name": "Jett",
+    "name_inferred": false,
+    "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+  },
+  "roles": [
+    {
+      "role": "entry",
+      "score": 0.74,
+      "confidence": 0.68,
+      "inferred": false,
+      "signals": [
+        {
+          "name": "first_duel_share",
+          "value": 0.31,
+          "sample_size": 214
+        },
+        {
+          "name": "first_death_rate",
+          "value": 0.19,
+          "sample_size": 214
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "matches": 9,
+    "rounds": 201,
+    "kills": 168,
+    "deaths": 110,
+    "assists": 41,
+    "kd": {
+      "value": 1.53,
+      "sample_size": 201,
+      "low_sample": false
+    },
+    "adr": {
+      "value": 158.2,
+      "sample_size": 201,
+      "low_sample": false
+    },
+    "hs_pct": {
+      "value": 0.27,
+      "sample_size": 201,
+      "low_sample": false
+    },
+    "first_kill_rate": {
+      "value": 0.3,
+      "sample_size": 201,
+      "low_sample": false
+    },
+    "first_death_rate": {
+      "value": 0.17,
+      "sample_size": 201,
+      "low_sample": false
+    },
+    "opening_duel_win_pct": {
+      "value": 0.64,
+      "sample_size": 95,
+      "low_sample": false
+    },
+    "clutches": 6,
+    "multikills": {
+      "k2": 21,
+      "k3": 6,
+      "k4": 1,
+      "k5": 0
+    }
+  },
+  "weapons": [
+    {
+      "weapon": {
+        "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+        "name": "Vandal",
+        "name_inferred": false,
+        "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+      },
+      "buy_type": "full_buy",
+      "rounds": 96,
+      "round_win_rate": {
+        "value": 0.55,
+        "sample_size": 96,
+        "low_sample": false
+      },
+      "kills": 91,
+      "kd": {
+        "value": 1.6,
+        "sample_size": 96,
+        "low_sample": false
+      },
+      "hs_pct": {
+        "value": 0.29,
+        "sample_size": 96,
+        "low_sample": false
+      },
+      "damage_per_round": {
+        "value": 161.0,
+        "sample_size": 96,
+        "low_sample": false
+      }
+    }
+  ],
+  "by_map": [
+    {
+      "map": {
+        "codename": "Ascent",
+        "name": "Ascent",
+        "has_minimap": true,
+        "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+      },
+      "matches": 4,
+      "kills": 77,
+      "deaths": 52,
+      "kd": {
+        "value": 1.48,
+        "sample_size": 4,
+        "low_sample": true
+      }
+    }
+  ],
+  "agents": [
+    {
+      "agent": {
+        "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
+        "name": "Jett",
+        "name_inferred": false,
+        "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+      },
+      "matches": 6,
+      "kd": {
+        "value": 1.6,
+        "sample_size": 6,
+        "low_sample": false
+      },
+      "adr": {
+        "value": 163.0,
+        "sample_size": 6,
+        "low_sample": false
+      },
+      "win_rate": {
+        "value": 0.5,
+        "sample_size": 6,
+        "low_sample": false
+      }
+    },
+    {
+      "agent": {
+        "id": "EFBA5359-0000-0000-0000-000000000000",
+        "name": null,
+        "name_inferred": false,
+        "icon_url": null
+      },
+      "matches": 3,
+      "kd": {
+        "value": 1.4,
+        "sample_size": 3,
+        "low_sample": true
+      },
+      "adr": {
+        "value": 150.0,
+        "sample_size": 3,
+        "low_sample": true
+      },
+      "win_rate": {
+        "value": 0.33,
+        "sample_size": 3,
+        "low_sample": true
+      }
+    }
+  ],
+  "insights": [
+    {
+      "id": "hs-low-full-buy",
+      "kind": "weakness",
+      "text_pt": "Percentual de headshots abaixo da média em full buy.",
+      "low_sample": false,
+      "evidence": {
+        "metric": "hs_pct_full_buy",
+        "value": 0.22,
+        "baseline": 0.27,
+        "sample_size": 96,
+        "unit": "ratio"
+      }
+    },
+    {
+      "id": "opening-strong",
+      "kind": "strength",
+      "text_pt": "Vence a maioria dos duelos de abertura.",
+      "low_sample": false,
+      "evidence": {
+        "metric": "opening_duel_win_pct",
+        "value": 0.64,
+        "baseline": 0.5,
+        "sample_size": 95,
+        "unit": "ratio"
+      }
+    },
+    {
+      "id": "tip-crosshair",
+      "kind": "tip",
+      "text_pt": "Treinar posicionamento de mira (crosshair placement) em ângulos de A longo.",
+      "low_sample": true,
+      "evidence": {
+        "metric": "hs_pct_full_buy",
+        "value": 0.22,
+        "baseline": 0.27,
+        "sample_size": 96,
+        "unit": "ratio"
+      }
+    }
+  ]
+}

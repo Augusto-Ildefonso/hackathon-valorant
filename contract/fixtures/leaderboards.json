@@ -1,0 +1,89 @@
+{
+  "players": {
+    "kd": [
+      {
+        "rank": 1,
+        "player": {
+          "puuid": "puuid-0001",
+          "riot_id": "Didado#BR1"
+        },
+        "team": {
+          "name": "Fatec PG"
+        },
+        "value": 1.52,
+        "matches": 9,
+        "rounds": 201
+      }
+    ],
+    "adr": [
+      {
+        "rank": 1,
+        "player": {
+          "puuid": "puuid-0002",
+          "riot_id": "ESCkey#BR1"
+        },
+        "team": {
+          "name": "Panterão Gaming"
+        },
+        "value": 181.4,
+        "matches": 11,
+        "rounds": 240
+      }
+    ],
+    "hs_pct": [
+      {
+        "rank": 1,
+        "player": {
+          "puuid": "puuid-0003",
+          "riot_id": "Vani#BR1"
+        },
+        "team": {
+          "name": "Panterão Gaming"
+        },
+        "value": 0.34,
+        "matches": 4,
+        "rounds": 88,
+        "low_sample": true
+      }
+    ],
+    "first_kills": [
+      {
+        "rank": 1,
+        "player": {
+          "puuid": "puuid-0001",
+          "riot_id": "Didado#BR1"
+        },
+        "team": {
+          "name": "Fatec PG"
+        },
+        "value": 61,
+        "matches": 9,
+        "rounds": 201
+      }
+    ]
+  },
+  "teams": {
+    "win_rate": [
+      {
+        "rank": 1,
+        "team": {
+          "name": "Panterão Gaming"
+        },
+        "value": 0.71,
+        "matches": 14,
+        "rounds": 330
+      }
+    ],
+    "round_win_rate": [
+      {
+        "rank": 1,
+        "team": {
+          "name": "Panterão Gaming"
+        },
+        "value": 0.58,
+        "matches": 14,
+        "rounds": 330
+      }
+    ]
+  }
+}

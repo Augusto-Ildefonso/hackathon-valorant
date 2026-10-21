@@ -1,0 +1,212 @@
+{
+  "team": {
+    "name": "Fatec PG"
+  },
+  "roster": [
+    {
+      "player": {
+        "puuid": "puuid-0001",
+        "riot_id": "Didado#BR1"
+      },
+      "matches": 9,
+      "top_role": {
+        "role": "entry",
+        "score": 0.74,
+        "confidence": 0.68,
+        "inferred": false,
+        "signals": [
+          {
+            "name": "first_duel_share",
+            "value": 0.31,
+            "sample_size": 214
+          },
+          {
+            "name": "first_death_rate",
+            "value": 0.19,
+            "sample_size": 214
+          }
+        ]
+      }
+    },
+    {
+      "player": {
+        "puuid": "puuid-0002",
+        "riot_id": "ESCkey#BR1"
+      },
+      "matches": 12,
+      "top_role": null
+    }
+  ],
+  "record": {
+    "matches": 12,
+    "series": 8,
+    "wins": 5,
+    "losses": 7,
+    "round_win_rate": {
+      "value": 0.47,
+      "sample_size": 270,
+      "low_sample": false
+    },
+    "attack_win_rate": {
+      "value": 0.44,
+      "sample_size": 135,
+      "low_sample": false
+    },
+    "defense_win_rate": {
+      "value": 0.51,
+      "sample_size": 135,
+      "low_sample": false
+    }
+  },
+  "matches": [
+    {
+      "match_id": "aaac8e08-a406-498d-bd39-342a6a2f9aeb",
+      "tournament": "Rush Series Esquenta 2",
+      "phase": null,
+      "date": "2026-06-20",
+      "map": {
+        "codename": "Ascent",
+        "name": "Ascent",
+        "has_minimap": true,
+        "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+      },
+      "team_a": {
+        "team": {
+          "name": "Fatec PG"
+        },
+        "score": 10
+      },
+      "team_b": {
+        "team": {
+          "name": "Panterão Gaming"
+        },
+        "score": 13
+      },
+      "winner": "b",
+      "duration_ms": 2461000
+    }
+  ],
+  "trend": [
+    {
+      "match_id": "aaac8e08-a406-498d-bd39-342a6a2f9aeb",
+      "date": "2026-06-20",
+      "round_diff": -3
+    }
+  ],
+  "by_map": [
+    {
+      "map": {
+        "codename": "Ascent",
+        "name": "Ascent",
+        "has_minimap": true,
+        "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+      },
+      "matches": 5,
+      "win_rate": {
+        "value": 0.4,
+        "sample_size": 5,
+        "low_sample": false
+      },
+      "attack_win_rate": {
+        "value": 0.42,
+        "sample_size": 60,
+        "low_sample": false
+      },
+      "defense_win_rate": {
+        "value": 0.5,
+        "sample_size": 60,
+        "low_sample": false
+      }
+    }
+  ],
+  "economy": {
+    "win_rate_by_round_type": {
+      "pistol": {
+        "value": 0.3,
+        "sample_size": 40,
+        "low_sample": true
+      },
+      "eco": {
+        "value": 0.4,
+        "sample_size": 34,
+        "low_sample": false
+      },
+      "semi_eco": {
+        "value": 0.5,
+        "sample_size": 28,
+        "low_sample": false
+      },
+      "force": {
+        "value": 0.6000000000000001,
+        "sample_size": 22,
+        "low_sample": false
+      },
+      "full_buy": {
+        "value": 0.7,
+        "sample_size": 16,
+        "low_sample": false
+      }
+    },
+    "pistol_win_rate": {
+      "value": 0.5,
+      "sample_size": 24,
+      "low_sample": false
+    },
+    "plant_site_preference": {
+      "A": {
+        "value": 0.55,
+        "sample_size": 80,
+        "low_sample": false
+      },
+      "B": {
+        "value": 0.45,
+        "sample_size": 80,
+        "low_sample": false
+      }
+    },
+    "avg_time_to_plant_ms": {
+      "value": 48200,
+      "sample_size": 80,
+      "low_sample": false
+    },
+    "post_plant_win_rate": {
+      "value": 0.61,
+      "sample_size": 80,
+      "low_sample": false
+    },
+    "retake_success_rate": {
+      "value": 0.33,
+      "sample_size": 52,
+      "low_sample": false
+    }
+  },
+  "role_composition": [
+    {
+      "role": "entry",
+      "count": 1
+    },
+    {
+      "role": "support",
+      "count": 2
+    },
+    {
+      "role": "flex",
+      "count": 2
+    }
+  ],
+  "insights": [
+    {
+      "id": "eco-weak",
+      "kind": "weakness",
+      "text_pt": "Rounds eco quase nunca são convertidos.",
+      "low_sample": false,
+      "evidence": {
+        "metric": "eco_win_rate",
+        "value": 0.08,
+        "baseline": 0.15,
+        "sample_size": 40,
+        "unit": "ratio"
+      }
+    }
+  ]
+}

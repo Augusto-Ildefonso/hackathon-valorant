@@ -1,0 +1,55 @@
+{
+  "kpis": {
+    "matches": 336,
+    "rounds": 6618,
+    "kills": 46753,
+    "players": 413,
+    "teams": 118,
+    "tournaments": 4
+  },
+  "date_from": "2026-06-06",
+  "date_to": "2026-09-27",
+  "tournaments": [
+    {
+      "id": "RUSH1",
+      "name": "Rush Series Esquenta",
+      "phases": [],
+      "matches": 29
+    },
+    {
+      "id": "RUSH2",
+      "name": "Rush Series Esquenta 2",
+      "phases": [],
+      "matches": 26
+    },
+    {
+      "id": "RUSHI",
+      "name": "Rush Series Inclusivo",
+      "phases": [],
+      "matches": 13
+    },
+    {
+      "id": "UNIVAVA",
+      "name": "Univavá",
+      "phases": [
+        "Classificatória 1",
+        "Fase de Grupos"
+      ],
+      "matches": 268
+    }
+  ],
+  "maps": [
+    {
+      "codename": "Ascent",
+      "name": "Ascent",
+      "has_minimap": true,
+      "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+    },
+    {
+      "codename": "Infinity",
+      "name": "Abyss",
+      "has_minimap": false,
+      "minimap_url": null
+    }
+  ]
+}

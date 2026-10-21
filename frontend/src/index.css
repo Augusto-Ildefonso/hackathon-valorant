@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Design tokens: mirror the Figma variable collection "HV Tokens" (file nilg3f5kGOAgARvLbUf8ml). Owner: Stream E. */
+@theme {
+  --color-bg-app: #0a0d12;
+  --color-bg-nav: #07090d;
+  --color-surface: #11161d;
+  --color-surface-raised: #182029;
+  --color-surface-accent: #2a1319;
+  --color-border: #232c38;
+  --color-border-strong: #364454;
+  --color-fg: #f1eee8;
+  --color-fg-secondary: #a3aebb;
+  --color-fg-muted: #6b7787;
+  --color-on-accent: #0a0d12;
+  --color-accent: #ff3b52;
+  --color-accent-hover: #ff6475;
+  --color-cyan: #2ee6d0;
+  --color-amber: #ffb547;
+  --color-green: #3ddc84;
+  --color-blue: #5b8def;
+  --color-violet: #a07bff;
+
+  --font-display: "Chakra Petch", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-bg-app);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}

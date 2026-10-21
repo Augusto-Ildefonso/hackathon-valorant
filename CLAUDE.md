@@ -20,6 +20,9 @@ The product is **impartial**: there is no fixed "our team". The user picks any p
 - Backend: Python + FastAPI + pandas/numpy. Loads all JSON from `data/` into memory at startup (no database); the data folder can grow, so never hardcode file counts.
 - Recommendations are rule-based and cite their evidence. An LLM may optionally polish the text but must never invent numbers, and the app must work without it.
 
+## Commands
+`make setup` (venv + npm install) · `make dev` (API :8000 + web :5173) · `make dev-mock` (web only, fixtures) · `make test` (pytest + tsc) · `make fixtures`. API contract: `contract/openapi.md`; data tables: `backend/app/data/SCHEMA.md`; metric definitions: `backend/app/metrics/SPEC.md`; rules for PRs: `CONTRIBUTING.md`.
+
 ## Screens
 Home (search, KPIs, leaderboards, recent matches) · Player Profile · Team Profile · Map Profile (heatmaps, blind spots, attack/defense) · Match Report (scoreboard, round timeline, kill replay map) · Action Plan (Team A vs Team B + map → a round-by-round plan for the whole match, where each round gets a predicted round type, buy, strategy, enemy weak points and probable enemy move). Details in `project-details.md`.
 

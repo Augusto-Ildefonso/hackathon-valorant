@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "match_id": "aaac8e08-a406-498d-bd39-342a6a2f9aeb",
+      "tournament": "Rush Series Esquenta 2",
+      "phase": null,
+      "date": "2026-06-20",
+      "map": {
+        "codename": "Ascent",
+        "name": "Ascent",
+        "has_minimap": true,
+        "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+      },
+      "team_a": {
+        "team": {
+          "name": "Fatec PG"
+        },
+        "score": 10
+      },
+      "team_b": {
+        "team": {
+          "name": "Panterão Gaming"
+        },
+        "score": 13
+      },
+      "winner": "b",
+      "duration_ms": 2461000
+    }
+  ],
+  "total": 336
+}

@@ -1,0 +1,143 @@
+{
+  "match_id": "aaac8e08-a406-498d-bd39-342a6a2f9aeb",
+  "tournament": "Rush Series Esquenta 2",
+  "phase": null,
+  "date": "2026-06-20",
+  "map": {
+    "codename": "Ascent",
+    "name": "Ascent",
+    "has_minimap": true,
+    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+  },
+  "team_a": {
+    "team": {
+      "name": "Fatec PG"
+    },
+    "score": 10
+  },
+  "team_b": {
+    "team": {
+      "name": "Panterão Gaming"
+    },
+    "score": 13
+  },
+  "winner": "b",
+  "duration_ms": 2461000,
+  "mvp": {
+    "puuid": "puuid-0002",
+    "riot_id": "ESCkey#BR1"
+  },
+  "rounds": [
+    {
+      "number": 1,
+      "half": 1,
+      "winner": "b",
+      "team_a_side": "attack",
+      "result": "defused",
+      "ceremony": "Clutch",
+      "plant_site": "A",
+      "planted": true,
+      "defused": true,
+      "economy": {
+        "team_a_type": "pistol",
+        "team_b_type": "pistol",
+        "team_a_loadout": 900,
+        "team_b_loadout": 900
+      }
+    },
+    {
+      "number": 2,
+      "half": 1,
+      "winner": "b",
+      "team_a_side": "attack",
+      "result": "eliminated",
+      "ceremony": null,
+      "plant_site": null,
+      "planted": false,
+      "defused": false,
+      "economy": {
+        "team_a_type": "eco",
+        "team_b_type": "full_buy",
+        "team_a_loadout": 1200,
+        "team_b_loadout": 4300
+      }
+    },
+    {
+      "number": 13,
+      "half": 2,
+      "winner": "a",
+      "team_a_side": "defense",
+      "result": "detonated",
+      "ceremony": "Flawless",
+      "plant_site": "B",
+      "planted": true,
+      "defused": false,
+      "economy": {
+        "team_a_type": "pistol",
+        "team_b_type": "pistol",
+        "team_a_loadout": 900,
+        "team_b_loadout": 900
+      }
+    }
+  ],
+  "scoreboard": [
+    {
+      "player": {
+        "puuid": "puuid-0001",
+        "riot_id": "Didado#BR1"
+      },
+      "team": "a",
+      "agent": {
+        "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
+        "name": "Jett",
+        "name_inferred": false,
+        "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+      },
+      "kills": 18,
+      "deaths": 14,
+      "assists": 3,
+      "adr": {
+        "value": 171.2,
+        "sample_size": 23,
+        "low_sample": false
+      },
+      "hs_pct": {
+        "value": 0.28,
+        "sample_size": 23,
+        "low_sample": false
+      },
+      "first_kills": 5,
+      "score": 4120
+    }
+  ],
+  "insights_a": [
+    {
+      "id": "m-eco",
+      "kind": "weakness",
+      "text_pt": "Perdeu todos os rounds eco nesta partida.",
+      "low_sample": true,
+      "evidence": {
+        "metric": "eco_rounds_won",
+        "value": 0,
+        "baseline": 0.15,
+        "sample_size": 5,
+        "unit": "count"
+      }
+    }
+  ],
+  "insights_b": [
+    {
+      "id": "m-def",
+      "kind": "strength",
+      "text_pt": "Defesa sólida no site A.",
+      "low_sample": false,
+      "evidence": {
+        "metric": "site_a_defense_win",
+        "value": 0.8,
+        "baseline": 0.5,
+        "sample_size": 10,
+        "unit": "ratio"
+      }
+    }
+  ]
+}

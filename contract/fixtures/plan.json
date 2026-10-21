@@ -1,0 +1,464 @@
+{
+  "team_a": {
+    "name": "Fatec PG"
+  },
+  "team_b": {
+    "name": "Panterão Gaming"
+  },
+  "perspective": "a",
+  "map": {
+    "codename": "Ascent",
+    "name": "Ascent",
+    "has_minimap": true,
+    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+  },
+  "rounds_per_half": 2,
+  "starting_side": "attack",
+  "agents": [
+    {
+      "agent": {
+        "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
+        "name": "Jett",
+        "name_inferred": false,
+        "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+      },
+      "role": "duelist",
+      "reason_pt": "Mais usada pelo time no mapa.",
+      "evidence": {
+        "value": 0.5,
+        "sample_size": 6,
+        "low_sample": false
+      }
+    }
+  ],
+  "opponent": {
+    "team": {
+      "name": "Panterão Gaming"
+    },
+    "matches_on_map": 6,
+    "preferred_site": "B",
+    "avg_time_to_plant_ms": {
+      "value": 51000,
+      "sample_size": 40,
+      "low_sample": false
+    },
+    "attack_win_rate": {
+      "value": 0.55,
+      "sample_size": 70,
+      "low_sample": false
+    },
+    "defense_win_rate": {
+      "value": 0.6,
+      "sample_size": 70,
+      "low_sample": false
+    },
+    "pistol_win_rate": {
+      "value": 0.6,
+      "sample_size": 12,
+      "low_sample": true
+    },
+    "eco_win_rate": {
+      "value": 0.22,
+      "sample_size": 18,
+      "low_sample": false
+    },
+    "insights": [
+      {
+        "id": "o1",
+        "kind": "weakness",
+        "text_pt": "Rounds eco convertem 22%.",
+        "low_sample": false,
+        "evidence": {
+          "metric": "eco_win_rate",
+          "value": 0.22,
+          "baseline": 0.15,
+          "sample_size": 18,
+          "unit": "ratio"
+        }
+      }
+    ]
+  },
+  "rounds": [
+    {
+      "number": 1,
+      "half": 1,
+      "side": "attack",
+      "round_type": "pistol",
+      "base_scenario_result": "loss",
+      "win_probability": {
+        "value": 0.46,
+        "sample_size": 38,
+        "low_sample": false
+      },
+      "projected_economy": {
+        "team_credits": 4300,
+        "enemy_credits": 3900,
+        "reasoning_pt": "Perdeu 2 rounds; time costuma forçar."
+      },
+      "buy": [
+        {
+          "role": "entry",
+          "weapon": {
+            "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+            "name": "Vandal",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Full buy: melhor taxa de vitória com Vandal."
+        },
+        {
+          "role": "support",
+          "weapon": {
+            "id": "EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A",
+            "name": "Phantom",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Phantom para spray em retomadas."
+        }
+      ],
+      "strategy": {
+        "summary_pt": "Executar no site A com fumaça de ambos os lados.",
+        "site": "A",
+        "timing": "default",
+        "steps_pt": [
+          "Fumaça em CT",
+          "Entrada com o entry"
+        ]
+      },
+      "enemy_weak_points": [
+        {
+          "id": "w1",
+          "kind": "weakness",
+          "text_pt": "Perde o meio cedo.",
+          "low_sample": false,
+          "evidence": {
+            "metric": "mid_first_death_rate",
+            "value": 0.34,
+            "baseline": 0.2,
+            "sample_size": 55,
+            "unit": "ratio"
+          }
+        }
+      ],
+      "enemy_probable_strategy": {
+        "summary_pt": "Costuma defender o site B com 3.",
+        "site": "B",
+        "route": [
+          {
+            "x": 0.3,
+            "y": 0.6
+          },
+          {
+            "x": 0.4,
+            "y": 0.5
+          }
+        ],
+        "evidence": {
+          "value": 0.6,
+          "sample_size": 30,
+          "low_sample": false
+        }
+      },
+      "contingency": {
+        "if_previous_won": {
+          "round_type": "full_buy",
+          "summary_pt": "Se vencer o round anterior, full buy."
+        },
+        "if_previous_lost": {
+          "round_type": "force",
+          "summary_pt": "Se perder, force buy parcial."
+        }
+      },
+      "insights": []
+    },
+    {
+      "number": 2,
+      "half": 1,
+      "side": "attack",
+      "round_type": "eco",
+      "base_scenario_result": "loss",
+      "win_probability": {
+        "value": 0.46,
+        "sample_size": 38,
+        "low_sample": false
+      },
+      "projected_economy": {
+        "team_credits": 4300,
+        "enemy_credits": 3900,
+        "reasoning_pt": "Perdeu 2 rounds; time costuma forçar."
+      },
+      "buy": [
+        {
+          "role": "entry",
+          "weapon": {
+            "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+            "name": "Vandal",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Full buy: melhor taxa de vitória com Vandal."
+        },
+        {
+          "role": "support",
+          "weapon": {
+            "id": "EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A",
+            "name": "Phantom",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Phantom para spray em retomadas."
+        }
+      ],
+      "strategy": {
+        "summary_pt": "Executar no site A com fumaça de ambos os lados.",
+        "site": "A",
+        "timing": "default",
+        "steps_pt": [
+          "Fumaça em CT",
+          "Entrada com o entry"
+        ]
+      },
+      "enemy_weak_points": [
+        {
+          "id": "w1",
+          "kind": "weakness",
+          "text_pt": "Perde o meio cedo.",
+          "low_sample": false,
+          "evidence": {
+            "metric": "mid_first_death_rate",
+            "value": 0.34,
+            "baseline": 0.2,
+            "sample_size": 55,
+            "unit": "ratio"
+          }
+        }
+      ],
+      "enemy_probable_strategy": {
+        "summary_pt": "Costuma defender o site B com 3.",
+        "site": "B",
+        "route": [
+          {
+            "x": 0.3,
+            "y": 0.6
+          },
+          {
+            "x": 0.4,
+            "y": 0.5
+          }
+        ],
+        "evidence": {
+          "value": 0.6,
+          "sample_size": 30,
+          "low_sample": false
+        }
+      },
+      "contingency": {
+        "if_previous_won": {
+          "round_type": "full_buy",
+          "summary_pt": "Se vencer o round anterior, full buy."
+        },
+        "if_previous_lost": {
+          "round_type": "force",
+          "summary_pt": "Se perder, force buy parcial."
+        }
+      },
+      "insights": []
+    },
+    {
+      "number": 3,
+      "half": 2,
+      "side": "defense",
+      "round_type": "pistol",
+      "base_scenario_result": "win",
+      "win_probability": {
+        "value": 0.46,
+        "sample_size": 38,
+        "low_sample": false
+      },
+      "projected_economy": {
+        "team_credits": 4300,
+        "enemy_credits": 3900,
+        "reasoning_pt": "Perdeu 2 rounds; time costuma forçar."
+      },
+      "buy": [
+        {
+          "role": "entry",
+          "weapon": {
+            "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+            "name": "Vandal",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Full buy: melhor taxa de vitória com Vandal."
+        },
+        {
+          "role": "support",
+          "weapon": {
+            "id": "EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A",
+            "name": "Phantom",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Phantom para spray em retomadas."
+        }
+      ],
+      "strategy": {
+        "summary_pt": "Executar no site A com fumaça de ambos os lados.",
+        "site": "A",
+        "timing": "default",
+        "steps_pt": [
+          "Fumaça em CT",
+          "Entrada com o entry"
+        ]
+      },
+      "enemy_weak_points": [
+        {
+          "id": "w1",
+          "kind": "weakness",
+          "text_pt": "Perde o meio cedo.",
+          "low_sample": false,
+          "evidence": {
+            "metric": "mid_first_death_rate",
+            "value": 0.34,
+            "baseline": 0.2,
+            "sample_size": 55,
+            "unit": "ratio"
+          }
+        }
+      ],
+      "enemy_probable_strategy": {
+        "summary_pt": "Costuma defender o site B com 3.",
+        "site": "B",
+        "route": [
+          {
+            "x": 0.3,
+            "y": 0.6
+          },
+          {
+            "x": 0.4,
+            "y": 0.5
+          }
+        ],
+        "evidence": {
+          "value": 0.6,
+          "sample_size": 30,
+          "low_sample": false
+        }
+      },
+      "contingency": {
+        "if_previous_won": {
+          "round_type": "full_buy",
+          "summary_pt": "Se vencer o round anterior, full buy."
+        },
+        "if_previous_lost": {
+          "round_type": "force",
+          "summary_pt": "Se perder, force buy parcial."
+        }
+      },
+      "insights": []
+    },
+    {
+      "number": 4,
+      "half": 2,
+      "side": "defense",
+      "round_type": "full_buy",
+      "base_scenario_result": "win",
+      "win_probability": {
+        "value": 0.46,
+        "sample_size": 38,
+        "low_sample": false
+      },
+      "projected_economy": {
+        "team_credits": 4300,
+        "enemy_credits": 3900,
+        "reasoning_pt": "Perdeu 2 rounds; time costuma forçar."
+      },
+      "buy": [
+        {
+          "role": "entry",
+          "weapon": {
+            "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+            "name": "Vandal",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Full buy: melhor taxa de vitória com Vandal."
+        },
+        {
+          "role": "support",
+          "weapon": {
+            "id": "EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A",
+            "name": "Phantom",
+            "name_inferred": false,
+            "icon_url": "/assets/Weapons/EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A.png"
+          },
+          "armor": "heavy",
+          "reason_pt": "Phantom para spray em retomadas."
+        }
+      ],
+      "strategy": {
+        "summary_pt": "Executar no site A com fumaça de ambos os lados.",
+        "site": "A",
+        "timing": "default",
+        "steps_pt": [
+          "Fumaça em CT",
+          "Entrada com o entry"
+        ]
+      },
+      "enemy_weak_points": [
+        {
+          "id": "w1",
+          "kind": "weakness",
+          "text_pt": "Perde o meio cedo.",
+          "low_sample": false,
+          "evidence": {
+            "metric": "mid_first_death_rate",
+            "value": 0.34,
+            "baseline": 0.2,
+            "sample_size": 55,
+            "unit": "ratio"
+          }
+        }
+      ],
+      "enemy_probable_strategy": {
+        "summary_pt": "Costuma defender o site B com 3.",
+        "site": "B",
+        "route": [
+          {
+            "x": 0.3,
+            "y": 0.6
+          },
+          {
+            "x": 0.4,
+            "y": 0.5
+          }
+        ],
+        "evidence": {
+          "value": 0.6,
+          "sample_size": 30,
+          "low_sample": false
+        }
+      },
+      "contingency": {
+        "if_previous_won": {
+          "round_type": "full_buy",
+          "summary_pt": "Se vencer o round anterior, full buy."
+        },
+        "if_previous_lost": {
+          "round_type": "force",
+          "summary_pt": "Se perder, force buy parcial."
+        }
+      },
+      "insights": []
+    }
+  ],
+  "narrative_pt": null
+}

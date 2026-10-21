@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "team": {
+        "name": "Panterão Gaming"
+      },
+      "matches": 14,
+      "win_rate": {
+        "value": 0.71,
+        "sample_size": 14,
+        "low_sample": false
+      },
+      "round_win_rate": {
+        "value": 0.58,
+        "sample_size": 330,
+        "low_sample": false
+      },
+      "last_match_date": "2026-06-21"
+    },
+    {
+      "team": {
+        "name": "Fatec PG"
+      },
+      "matches": 12,
+      "win_rate": {
+        "value": 0.41,
+        "sample_size": 12,
+        "low_sample": false
+      },
+      "round_win_rate": {
+        "value": 0.47,
+        "sample_size": 270,
+        "low_sample": false
+      },
+      "last_match_date": "2026-06-21"
+    }
+  ]
+}

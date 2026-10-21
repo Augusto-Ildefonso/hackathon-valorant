@@ -1,0 +1,33 @@
+{
+  "query": "fa",
+  "players": [
+    {
+      "player": {
+        "puuid": "puuid-0001",
+        "riot_id": "Didado#BR1"
+      },
+      "team": {
+        "name": "Fatec PG"
+      },
+      "matches": 9
+    }
+  ],
+  "teams": [
+    {
+      "team": {
+        "name": "Fatec PG"
+      },
+      "matches": 12
+    }
+  ],
+  "maps": [
+    {
+      "map": {
+        "codename": "Foxtrot",
+        "name": "Breeze",
+        "has_minimap": true,
+        "minimap_url": "/assets/Maps/breeze.png"
+      }
+    }
+  ]
+}
