@@ -3,6 +3,8 @@
 // ---- common ----
 export type Side = "attack" | "defense";
 export type InsightKind = "strength" | "weakness" | "tip" | "strategy";
+/** Who chose and worded the insights (Stream D): fixed rules, or the AI analysis over the same computed facts. */
+export type InsightMode = "rules" | "llm";
 export type RoundType = "pistol" | "eco" | "semi_eco" | "force" | "full_buy";
 export type RoleName = "entry" | "lurker" | "igl" | "support" | "anchor" | "flex";
 export type Site = "A" | "B" | "C";
@@ -62,6 +64,7 @@ export interface AgentPerformance { agent: AgentRef; matches: number; kd: Stat; 
 export interface PlayerProfile {
   player: PlayerRef; teams: TeamRef[]; favorite_agent: AgentRef | null; roles: RoleScore[]; stats: PlayerStats;
   weapons: WeaponPerformance[]; by_map: MapPerformance[]; agents: AgentPerformance[]; insights: Insight[];
+  insights_source?: InsightMode;
 }
 
 // ---- team ----
@@ -81,7 +84,7 @@ export interface TeamEconomy {
 export interface RoleCount { role: RoleName; count: number }
 export interface TeamProfile {
   team: TeamRef; roster: RosterMember[]; record: TeamRecord; matches: MatchListItem[]; trend: TrendPoint[];
-  by_map: TeamMapPerformance[]; economy: TeamEconomy; role_composition: RoleCount[]; insights: Insight[];
+  by_map: TeamMapPerformance[]; economy: TeamEconomy; role_composition: RoleCount[]; insights: Insight[]; insights_source?: InsightMode;
 }
 
 // ---- map ----
@@ -93,7 +96,7 @@ export interface PlantPoint { site: Site; point: Point }
 export interface MapProfile {
   map: MapRef; matches: number; rounds: number; attack_win_rate: Stat; defense_win_rate: Stat;
   classification: "attack" | "defense" | "balanced"; top_agents: UsageRow[]; top_weapons: UsageRow[];
-  sites: SiteStats[]; plants: PlantPoint[]; insights: Insight[];
+  sites: SiteStats[]; plants: PlantPoint[]; insights: Insight[]; insights_source?: InsightMode;
 }
 export interface HeatLayer { grid: number[][]; max_count: number }
 export interface HeatmapResponse {
@@ -117,7 +120,7 @@ export interface ScoreboardRow {
 export interface MatchReport {
   match_id: string; tournament: string; phase: string | null; date: string; map: MapRef; duration_ms: number;
   team_a: MatchSide; team_b: MatchSide; winner: "a" | "b"; mvp: PlayerRef | null; rounds: RoundSummary[];
-  scoreboard: ScoreboardRow[]; insights_a: Insight[]; insights_b: Insight[];
+  scoreboard: ScoreboardRow[]; insights_a: Insight[]; insights_b: Insight[]; insights_source?: InsightMode;
 }
 export interface ReplayPlayer {
   puuid: string; riot_id: string; team: "a" | "b"; agent: AgentRef | null; pos: Point | null; view_radians: number | null;

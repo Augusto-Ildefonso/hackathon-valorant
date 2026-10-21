@@ -18,7 +18,7 @@ const KIND: Record<InsightKind, { label: string; bar: string; text: string }> = 
 };
 
 /** Evidence values already come in display units (percentages as 0-100); `unit` tells how to print them. */
-const shown = (v: number, unit?: string | null) => (unit === "%" ? `${num(v, 0)}%` : num(v));
+const shown = (v: number, unit?: string | null) => (unit === "%" ? `${num(v, 0)}%` : Number.isInteger(v) ? num(v, 0) : num(v));
 
 export function InsightCard({ insight }: { insight: Insight }) {
   const k = KIND[insight.kind];
@@ -29,6 +29,7 @@ export function InsightCard({ insight }: { insight: Insight }) {
       <div className="flex min-w-0 flex-1 flex-col gap-[6px] px-4 py-3">
         <div className="flex items-center gap-2">
           <span className={`font-display text-xs font-semibold uppercase leading-4 tracking-[0.96px] ${k.text}`}>{k.label}</span>
+          {insight.id.startsWith("llm-") && <span className="rounded-sm bg-tint-violet px-2 text-[11px] font-medium leading-[14px] text-violet" title="Escrito pela análise por IA">IA</span>}
           {insight.low_sample && <span className="rounded-sm bg-tint-amber px-2 text-[11px] font-medium leading-[14px] text-amber">AMOSTRA BAIXA</span>}
         </div>
         <p className="text-sm leading-5 text-fg">{insight.text_pt}</p>

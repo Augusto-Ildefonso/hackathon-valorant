@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMatch, useMatchKills } from "@/api/hooks";
-import type { KillEvent, MatchReport, RoundSummary } from "@/api/types";
+import type { InsightMode, KillEvent, MatchReport, RoundSummary } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
 import { AgentIcon, WeaponIcon } from "@/components/ui/AgentIcon";
 import { Badge } from "@/components/ui/Badge";
@@ -11,6 +11,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { InsightList } from "@/components/ui/InsightList";
+import { InsightModeBar } from "@/components/ui/InsightModeBar";
 import { Panel } from "@/components/ui/Panel";
 import { dateBR, num, pct } from "@/lib/format";
 import { tournamentLabel } from "@/lib/tournaments";
@@ -196,7 +197,8 @@ function Replay({ r, round, setRound }: { r: MatchReport; round: number; setRoun
 
 export default function MatchPage() {
   const { matchId = "" } = useParams();
-  const { data: r, isLoading, error } = useMatch(matchId);
+  const [mode, setMode] = useState<InsightMode>("rules");
+  const { data: r, isLoading, isFetching, error } = useMatch(matchId, mode);
   const [round, setRound] = useState(1);
   useEffect(() => setRound(1), [matchId]);
 
@@ -239,6 +241,7 @@ export default function MatchPage() {
       <Timeline r={r} selected={round} onSelect={setRound} />
       <Replay r={r} round={round} setRound={setRound} />
 
+      <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && r.insights_source !== "llm"} source={r.insights_source} />
       <div className="flex items-start gap-4">
         <Panel className="flex-1" title={r.team_a.team.name} subtitle="Melhorias sugeridas com base nesta partida"><InsightList insights={r.insights_a} /></Panel>
         <Panel className="flex-1" title={r.team_b.team.name} subtitle="Melhorias sugeridas com base nesta partida"><InsightList insights={r.insights_b} /></Panel>

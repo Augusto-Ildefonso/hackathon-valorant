@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useHeatmap, useMap, useMaps, useMeta } from "@/api/hooks";
-import type { HeatLayer } from "@/api/types";
+import type { HeatLayer, InsightMode } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
 import { CatalogIcon } from "@/components/ui/AgentIcon";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { InsightCard } from "@/components/ui/InsightList";
+import { InsightModeBar } from "@/components/ui/InsightModeBar";
 import { Meter } from "@/components/ui/Meter";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
@@ -25,7 +26,8 @@ export default function MapPage() {
   const navigate = useNavigate();
   const { data: meta } = useMeta();
   const maps = useMaps();
-  const { data: m, isLoading, error } = useMap(mapName);
+  const [mode, setMode] = useState<InsightMode>("rules");
+  const { data: m, isLoading, isFetching, error } = useMap(mapName, mode);
   const [side, setSide] = useState<Side>("both");
   const [layers, setLayers] = useState<Set<Layer>>(new Set(["deaths", "danger", "uncovered", "plants"]));
   const { data: heat } = useHeatmap(mapName, { side });
@@ -121,6 +123,7 @@ export default function MapPage() {
             </div>
           </div>
 
+          <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && m.insights_source !== "llm"} source={m.insights_source} />
           <Panel title="Pontos cegos" subtitle="Duas camadas: zonas perigosas (mortes ≫ abates) e zonas descobertas (pouco cobertas, mas de onde saem abates inimigos)">
             <div className="grid grid-cols-3 gap-4">
               {m.insights.length === 0 && <p className="col-span-3 text-sm text-fg-muted">Sem dados suficientes para sugerir.</p>}

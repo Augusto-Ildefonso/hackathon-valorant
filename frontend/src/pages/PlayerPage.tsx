@@ -1,12 +1,14 @@
 // Player Profile (Figma "Screen / Player Profile", 27:155). Owner: Stream B (layout from the design by Stream E).
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMeta, usePlayer } from "@/api/hooks";
-import type { PlayerProfile, RoleName, RoleScore } from "@/api/types";
+import type { InsightMode, PlayerProfile, RoleName, RoleScore } from "@/api/types";
 import { AgentIcon, MapIcon, WeaponIcon } from "@/components/ui/AgentIcon";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InsightList } from "@/components/ui/InsightList";
+import { InsightModeBar } from "@/components/ui/InsightModeBar";
 import { Meter } from "@/components/ui/Meter";
 import { Panel } from "@/components/ui/Panel";
 import { StatCard } from "@/components/ui/StatCard";
@@ -43,7 +45,8 @@ function roleEvidence(r: RoleScore, p: PlayerProfile): string {
 
 export default function PlayerPage() {
   const { puuid = "" } = useParams();
-  const { data: p, isLoading, error } = usePlayer(puuid);
+  const [mode, setMode] = useState<InsightMode>("rules");
+  const { data: p, isLoading, isFetching, error } = usePlayer(puuid, mode);
   const { data: meta } = useMeta();
   const { filters } = useFilters();
 
@@ -189,6 +192,7 @@ export default function PlayerPage() {
         </Panel>
       </div>
 
+      <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && p.insights_source !== "llm"} source={p.insights_source} />
       <div className="grid grid-cols-3 gap-4">
         <Panel title="Pontos fortes"><InsightList insights={p.insights} kinds={["strength"]} /></Panel>
         <Panel title="Pontos fracos"><InsightList insights={p.insights} kinds={["weakness"]} /></Panel>

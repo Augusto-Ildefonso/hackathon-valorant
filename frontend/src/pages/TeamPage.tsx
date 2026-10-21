@@ -1,12 +1,14 @@
 // Team Profile (Figma "Screen / Team Profile", 29:254). Owner: Stream B (layout from the design by Stream E).
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTeam } from "@/api/hooks";
-import type { RoleName, RoundType, TrendPoint } from "@/api/types";
+import type { InsightMode, RoleName, RoundType, TrendPoint } from "@/api/types";
 import { MapIcon } from "@/components/ui/AgentIcon";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InsightList } from "@/components/ui/InsightList";
+import { InsightModeBar } from "@/components/ui/InsightModeBar";
 import { Meter } from "@/components/ui/Meter";
 import { Panel } from "@/components/ui/Panel";
 import { StatCard } from "@/components/ui/StatCard";
@@ -56,7 +58,8 @@ function TrendChart({ points }: { points: TrendPoint[] }) {
 export default function TeamPage() {
   const { teamName = "" } = useParams();
   const navigate = useNavigate();
-  const { data: t, isLoading, error } = useTeam(teamName);
+  const [mode, setMode] = useState<InsightMode>("rules");
+  const { data: t, isLoading, isFetching, error } = useTeam(teamName, mode);
 
   if (isLoading) return <p className="text-fg-muted">Carregando…</p>;
   if (error || !t) return <EmptyState title="Time não encontrado" message="Não há dados deste time para os filtros atuais." />;
@@ -163,6 +166,7 @@ export default function TeamPage() {
         />
       </Panel>
 
+      <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && t.insights_source !== "llm"} source={t.insights_source} />
       <div className="grid grid-cols-3 gap-4">
         <Panel title="Pontos fortes"><InsightList insights={t.insights} kinds={["strength"]} /></Panel>
         <Panel title="Pontos fracos"><InsightList insights={t.insights} kinds={["weakness"]} /></Panel>

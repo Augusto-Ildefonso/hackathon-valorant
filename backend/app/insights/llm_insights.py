@@ -36,8 +36,9 @@ Regras obrigatórias:
 - Priorize o que mais se afasta da referência e tem amostra suficiente. Fato com `amostra_baixa` NUNCA é strength nem weakness: só pode entrar como tip ou strategy, dizendo que a amostra é pequena (escreva "amostra pequena" ou "hipótese").
 - `faixa` compara com os demais jogadores/times do campeonato; `referencia` é a mediana, ou a média do próprio jogador quando o rótulo disser.
 - strength só para fato cuja faixa é "entre os 20% melhores" (ou, sem faixa, claramente acima da referência); weakness só para "entre os 20% piores" (ou claramente abaixo). Fato em "faixa intermediária" ou perto da referência NÃO é ponto forte nem fraco: no máximo tip ou strategy. Em rótulos "menor é melhor", valor acima da referência é ruim.
+- Escreva decimais com vírgula, como no português do Brasil (ex.: "16,31%"), mesmo que o fato venha com ponto.
 - Ao citar a faixa, escreva "entre os melhores" ou "entre os piores do campeonato", sem número.
-- Não afirme o que os fatos não dizem (por exemplo "rounds econômicos" se o fato não fala de economia, ou "domínio" com poucos jogos).
+- Não afirme o que os fatos não dizem (por exemplo "rounds econômicos" se o fato não fala de economia, ou "domínio" com poucos jogos). Não explique POR QUE uma arma, agente ou posição funciona (alcance, habilidades, ângulos): não há dados disso. Fatos de popularidade (arma mais comprada, agente mais escolhido) descrevem o meta, não são recomendação por si só.
 - Você pode cruzar fatos (ex.: muitas aberturas vencidas mas poucas mortes trocadas) e deve explicar o porquê em uma frase.
 - Não invente habilidades, lineups, posições, nomes nem táticas que os fatos não sustentem. Frases curtas, tom de analista.
 Responda apenas com JSON: {"insights":[{"kind":"strength|weakness|tip|strategy","fact_ids":["id1","id2"],"text_pt":"..."}]}
