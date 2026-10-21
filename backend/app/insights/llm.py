@@ -2,8 +2,8 @@
 
 The rule-based planner decides everything: the plays, the numbers, the evidence. This module only asks the model to
 rewrite the plan's text the way a coach would say it, strictly from the facts the planner produced. Safety:
-* off unless `VAVAGYM_LLM=1` and a key (`GEMINI_API_KEY` from Google AI Studio, or `ANTHROPIC_API_KEY`) are set, in the
-  environment or in the git-ignored `<repo>/.env`; the app is complete without it;
+* Google Gemini only: off unless `VAVAGYM_LLM=1` and `GEMINI_API_KEY` (Google AI Studio) are set, in the environment or in
+  the git-ignored `<repo>/.env`; the app is complete without it;
 * every number in a rewritten field must already appear in that round's input (references like "R5" must point to a
   real round), otherwise that field keeps the template text;
 * any failure (network, timeout, bad JSON) leaves the plan untouched; results are cached on disk by input hash.
@@ -24,10 +24,7 @@ import httpx
 from ..deps import REPO_ROOT
 from ..schemas.plan import PlanResponse, RoundPlan
 
-API_URL = "https://api.anthropic.com/v1/messages"
-DEFAULT_MODEL = "claude-sonnet-5-5"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-DEFAULT_GEMINI_MODEL = "gemini-flash-latest"  # alias: specific versions get retired for new keys (2.5-flash returned 404)
 CACHE_DIR = REPO_ROOT / ".cache" / "llm"
 
 SYSTEM = """Você é um analista de VALORANT que escreve o plano de um treinador em português do Brasil.
@@ -64,24 +61,16 @@ def _load_dotenv() -> None:
 _load_dotenv()
 
 
-def provider() -> str | None:
-    """'gemini' (Google AI Studio key) or 'anthropic', from VAVAGYM_LLM_PROVIDER or whichever key is present."""
-    forced = os.environ.get("VAVAGYM_LLM_PROVIDER", "").lower()
-    has_gemini = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
-    has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
-    if forced == "gemini" and has_gemini or forced == "anthropic" and has_anthropic:
-        return forced
-    if forced:
-        return None
-    return "gemini" if has_gemini else "anthropic" if has_anthropic else None
+def api_key() -> str | None:
+    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or None
 
 
 def enabled() -> bool:
-    return os.environ.get("VAVAGYM_LLM") == "1" and provider() is not None
+    return os.environ.get("VAVAGYM_LLM") == "1" and api_key() is not None
 
 
 def model_name() -> str:
-    return os.environ.get("VAVAGYM_LLM_MODEL") or (DEFAULT_GEMINI_MODEL if provider() == "gemini" else DEFAULT_MODEL)
+    return gemini_models()[0]
 
 
 # ---- number check -----------------------------------------------------------------------------------------------------
@@ -146,28 +135,24 @@ def _post(client, url: str, headers: dict, body: dict):
 
 
 def _complete(client, user: str) -> str:
-    if provider() == "gemini":
-        key = os.environ.get("GEMINI_API_KEY") or os.environ["GOOGLE_API_KEY"]
-        body = {"systemInstruction": {"parts": [{"text": SYSTEM}]},
-                "contents": [{"role": "user", "parts": [{"text": user}]}],
-                "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 32768, "temperature": 0.4}}  # thinking tokens count against it
-        last: Exception | None = None
-        for model in gemini_models():  # next model when this one is overloaded or retired for the key
-            try:
-                resp = _post(client, GEMINI_URL.format(model=model), {"x-goog-api-key": key, "content-type": "application/json"}, body)
-                parts = resp.json()["candidates"][0]["content"]["parts"]
-                return "".join(p.get("text", "") for p in parts)
-            except Exception as e:
-                status = getattr(getattr(e, "response", None), "status_code", None)
-                log.warning("Gemini model %s failed: %s", model, describe_error(e))
-                last = e
-                if status not in (*RETRY_STATUS, 404) and not isinstance(e, httpx.TransportError):  # timeouts / connection drops move on
-                    raise
-        raise last  # type: ignore[misc]
-    resp = _post(client, API_URL, {"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
-                                   "content-type": "application/json"},
-                 {"model": model_name(), "max_tokens": 12000, "system": SYSTEM, "messages": [{"role": "user", "content": user}]})
-    return "".join(b.get("text", "") for b in resp.json()["content"] if b.get("type") == "text")
+    """One Gemini generateContent call (JSON answer), trying the model chain until one answers."""
+    key = api_key()
+    body = {"systemInstruction": {"parts": [{"text": SYSTEM}]},
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 32768, "temperature": 0.4}}  # thinking tokens count against it
+    last: Exception | None = None
+    for model in gemini_models():  # next model when this one is overloaded or retired for the key
+        try:
+            resp = _post(client, GEMINI_URL.format(model=model), {"x-goog-api-key": key, "content-type": "application/json"}, body)
+            parts = resp.json()["candidates"][0]["content"]["parts"]
+            return "".join(p.get("text", "") for p in parts)
+        except Exception as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            log.warning("Gemini model %s failed: %s", model, describe_error(e))
+            last = e
+            if status not in (*RETRY_STATUS, 404) and not isinstance(e, httpx.TransportError):  # timeouts / connection drops move on
+                raise
+    raise last  # type: ignore[misc]
 
 
 def _parse(text: str) -> dict | None:
@@ -217,7 +202,7 @@ def _rewrite_half(client, plan: PlanResponse, rounds: list[RoundPlan], total_rou
              "inimigo": plan.team_b.name if plan.perspective == "a" else plan.team_a.name, "mapa": plan.map.name,
              "rounds": [round_facts(r) for r in rounds]}
     user = json.dumps(facts, ensure_ascii=False)
-    key = hashlib.sha256(f"{provider()}|{model_name()}|{SYSTEM}|{user}".encode()).hexdigest()
+    key = hashlib.sha256(f"{','.join(gemini_models())}|{SYSTEM}|{user}".encode()).hexdigest()
 
     def call():
         try:

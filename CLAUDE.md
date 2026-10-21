@@ -20,7 +20,7 @@ The product is **impartial**: there is no fixed "our team". The user picks any p
 ## Stack
 - Frontend: React + Vite + Tailwind. Dark, VALORANT-inspired theme (original styling, no Riot logos or fonts).
 - Backend: Python + FastAPI + pandas/numpy. Loads all JSON from `data/` into memory at startup (no database); the data folder can grow, so never hardcode file counts.
-- Recommendations are rule-based and cite their evidence. An LLM may optionally polish the text but must never invent numbers, and the app must work without it (off unless `VAVAGYM_LLM=1` and `GEMINI_API_KEY` (Google AI Studio) or `ANTHROPIC_API_KEY` are set in the environment or the git-ignored `.env`, see `.env.example`).
+- Recommendations are rule-based and cite their evidence. An LLM may optionally polish the text but must never invent numbers, and the app must work without it (Gemini only; off unless `VAVAGYM_LLM=1` and `GEMINI_API_KEY` (Google AI Studio) are set in the environment or the git-ignored `.env`, see `.env.example`).
 
 ## Commands
 `make setup` (venv + npm install) · `make dev` (API :8000 + web :5173) · `make dev-mock` (web only, fixtures) · `make test` (pytest + tsc) · `make fixtures`. API contract: `contract/openapi.md`; data tables: `backend/app/data/SCHEMA.md`; metric definitions: `backend/app/metrics/SPEC.md`; rules for PRs: `CONTRIBUTING.md`.

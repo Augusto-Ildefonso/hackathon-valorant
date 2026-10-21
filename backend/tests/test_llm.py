@@ -17,7 +17,7 @@ def plan(full_store):
 
 
 class FakeResponse:
-    def __init__(self, text, status=200, gemini=False):
+    def __init__(self, text, status=200, gemini=True):
         self._text, self.status_code, self._gemini = text, status, gemini
 
     def raise_for_status(self):
@@ -49,32 +49,29 @@ class FakeClient:
 
 @pytest.fixture(autouse=True)
 def env(monkeypatch, tmp_path):
-    for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "VAVAGYM_LLM_PROVIDER", "VAVAGYM_LLM_MODEL"):
+    for k in ("GOOGLE_API_KEY", "VAVAGYM_LLM_MODEL"):
         monkeypatch.delenv(k, raising=False)  # a developer's real .env must not leak into the tests
     monkeypatch.setenv("VAVAGYM_LLM", "1")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
     monkeypatch.setattr(llm, "CACHE_DIR", tmp_path / "llm")
 
 
 def test_disabled_without_flag_or_key(monkeypatch):
+    assert llm.enabled()
     monkeypatch.delenv("VAVAGYM_LLM")
     assert not llm.enabled()
     monkeypatch.setenv("VAVAGYM_LLM", "1")
-    monkeypatch.delenv("ANTHROPIC_API_KEY")
-    assert not llm.enabled() and llm.provider() is None
+    monkeypatch.delenv("GEMINI_API_KEY")
+    assert not llm.enabled()
 
 
-def test_provider_follows_the_key_that_is_present(monkeypatch):
-    assert llm.provider() == "anthropic"
-    monkeypatch.setenv("GEMINI_API_KEY", "g")
-    assert llm.provider() == "gemini" and llm.model_name().startswith("gemini")
-    monkeypatch.setenv("VAVAGYM_LLM_PROVIDER", "anthropic")
-    assert llm.provider() == "anthropic"
+def test_google_api_key_name_also_works_and_default_model_is_gemini(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY")
+    monkeypatch.setenv("GOOGLE_API_KEY", "g2")
+    assert llm.enabled() and llm.model_name().startswith("gemini")
 
 
 def test_gemini_request_and_response_shape(monkeypatch, plan):
-    monkeypatch.setenv("GEMINI_API_KEY", "g")
-    monkeypatch.delenv("ANTHROPIC_API_KEY")
     seen = {}
 
     class GeminiClient:
@@ -91,6 +88,7 @@ def test_gemini_request_and_response_shape(monkeypatch, plan):
 def test_dotenv_is_read_without_overriding_real_env(monkeypatch, tmp_path):
     (tmp_path / ".env").write_text("# comment\nGEMINI_API_KEY='from-file'\nVAVAGYM_LLM_MODEL=gemini-x\n")
     monkeypatch.setattr(llm, "REPO_ROOT", tmp_path)
+    monkeypatch.delenv("GEMINI_API_KEY")  # the fixture sets one; the file may only fill what is missing
     monkeypatch.setenv("VAVAGYM_LLM_MODEL", "kept")
     llm._load_dotenv()
     import os
@@ -166,8 +164,6 @@ def test_network_failure_never_raises(plan):
 
 def test_temporary_errors_are_retried_then_succeed(plan, monkeypatch):
     monkeypatch.setattr(llm.time, "sleep", lambda s: None)
-    monkeypatch.setenv("GEMINI_API_KEY", "g")
-    monkeypatch.delenv("ANTHROPIC_API_KEY")
     answers = iter([FakeResponse("", 503, True), FakeResponse("", 503, True)])
     calls = []
 
@@ -182,8 +178,6 @@ def test_temporary_errors_are_retried_then_succeed(plan, monkeypatch):
 
 def test_gemini_falls_back_to_the_next_model_when_one_is_gone(plan, monkeypatch):
     monkeypatch.setattr(llm.time, "sleep", lambda s: None)
-    monkeypatch.setenv("GEMINI_API_KEY", "g")
-    monkeypatch.delenv("ANTHROPIC_API_KEY")
     tried = []
 
     class Retired:
