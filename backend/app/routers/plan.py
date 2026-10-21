@@ -35,7 +35,13 @@ def plan(req: PlanRequest):
         raise HTTPException(422, "rounds_per_half must be between 1 and 15")
     use_llm = req.use_llm and llm.enabled()
     key = (req.team_a, req.team_b, canon, req.perspective, req.rounds_per_half, req.starting_side, use_llm)
-    if key not in _CACHE:
-        built = build_plan(full, req.model_copy(update={"map": canon}))
-        _CACHE[key] = llm.narrate(built) if use_llm else built
-    return _CACHE[key]
+    if key in _CACHE:
+        return _CACHE[key]
+    built = build_plan(full, req.model_copy(update={"map": canon}))
+    if not use_llm:
+        _CACHE[key] = built
+        return built
+    out = llm.narrate(built)
+    if out.text_source == "llm":  # a failed attempt must not be cached: the next click should try again
+        _CACHE[key] = out
+    return out

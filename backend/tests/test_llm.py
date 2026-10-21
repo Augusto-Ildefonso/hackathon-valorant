@@ -17,13 +17,24 @@ def plan(full_store):
 
 
 class FakeResponse:
-    def __init__(self, text):
-        self._text = text
+    def __init__(self, text, status=200, gemini=False):
+        self._text, self.status_code, self._gemini = text, status, gemini
 
     def raise_for_status(self):
-        pass
+        if self.status_code >= 400:
+            import httpx
+
+            raise httpx.HTTPStatusError(f"{self.status_code}", request=None, response=self)  # type: ignore[arg-type]
+
+    @property
+    def text(self):
+        return self._text
 
     def json(self):
+        if self.status_code >= 400:
+            return {"error": {"message": f"fake error {self.status_code}"}}
+        if self._gemini:
+            return {"candidates": [{"content": {"parts": [{"text": self._text}]}}]}
         return {"content": [{"type": "text", "text": self._text}]}
 
 
@@ -69,8 +80,7 @@ def test_gemini_request_and_response_shape(monkeypatch, plan):
     class GeminiClient:
         def post(self, url, headers=None, json=None):  # noqa: A002
             seen.update(url=url, headers=headers, body=json)
-            return type("R", (), {"raise_for_status": lambda s: None,
-                                  "json": lambda s: {"candidates": [{"content": {"parts": [{"text": _answer_for(plan)}]}}]}})()
+            return FakeResponse(_answer_for(plan), gemini=True)
 
     out = llm.narrate(plan, client=GeminiClient())
     assert "generativelanguage.googleapis.com" in seen["url"] and seen["headers"]["x-goog-api-key"] == "g"
@@ -140,7 +150,8 @@ def test_cache_avoids_a_second_call(plan):
 @pytest.mark.parametrize("answer", ["not json", "[]", "{}", ""])
 def test_bad_answers_leave_the_plan_untouched(plan, answer):
     out = llm.narrate(plan, client=FakeClient(answer))
-    assert out.model_dump() == plan.model_dump()
+    assert out.rounds == plan.rounds and out.text_source == "rules" and out.narrative_pt is None
+    assert any(n.startswith("Narrativa por IA") for n in out.notes_pt) or answer in ("[]", "{}")  # unparseable answers say why
 
 
 def test_network_failure_never_raises(plan):
@@ -148,4 +159,42 @@ def test_network_failure_never_raises(plan):
         def post(self, *a, **k):
             raise RuntimeError("network down")
 
-    assert llm.narrate(plan, client=Boom()).model_dump() == plan.model_dump()
+    out = llm.narrate(plan, client=Boom())
+    assert out.rounds == plan.rounds and out.text_source == "rules"
+    assert any("network down" in n for n in out.notes_pt)  # the reason reaches the user, not only the log
+
+
+def test_temporary_errors_are_retried_then_succeed(plan, monkeypatch):
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    monkeypatch.delenv("ANTHROPIC_API_KEY")
+    answers = iter([FakeResponse("", 503, True), FakeResponse("", 503, True)])
+    calls = []
+
+    class Flaky:
+        def post(self, url, headers=None, json=None):  # noqa: A002
+            calls.append(url)
+            return next(answers, None) or FakeResponse(_answer_for(plan), gemini=True)
+
+    out = llm.narrate(plan, client=Flaky())
+    assert out.text_source == "llm" and len(calls) >= 3
+
+
+def test_gemini_falls_back_to_the_next_model_when_one_is_gone(plan, monkeypatch):
+    monkeypatch.setattr(llm.time, "sleep", lambda s: None)
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    monkeypatch.delenv("ANTHROPIC_API_KEY")
+    tried = []
+
+    class Retired:
+        def post(self, url, headers=None, json=None):  # noqa: A002
+            tried.append(url.split("/models/")[1].split(":")[0])
+            return FakeResponse("", 404, True) if len(tried) == 1 or tried[-1] == tried[0] else FakeResponse(_answer_for(plan), gemini=True)
+
+    out = llm.narrate(plan, client=Retired())
+    assert tried[0] == llm.GEMINI_FALLBACKS[0] and llm.GEMINI_FALLBACKS[1] in tried and out.text_source == "llm"
+
+
+def test_a_forced_model_is_the_only_one_tried(monkeypatch):
+    monkeypatch.setenv("VAVAGYM_LLM_MODEL", "gemini-x")
+    assert llm.gemini_models() == ["gemini-x"]

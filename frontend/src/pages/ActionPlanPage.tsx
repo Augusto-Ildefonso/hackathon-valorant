@@ -275,6 +275,7 @@ export default function ActionPlanPage() {
   const [rph, setRph] = useState(12);
   const [start, setStart] = useState<Side>("attack");
   const [persp, setPersp] = useState<"a" | "b">("a");
+  const [shown, setShown] = useState<PlanResponse | undefined>();
   const [sel, setSel] = useState(1);
   const [showAll, setShowAll] = useState(false);
 
@@ -286,16 +287,18 @@ export default function ActionPlanPage() {
 
   const run = (p: "a" | "b" = persp, over?: Partial<PlanRequest>) => {
     if (!a || !b) return;
-    plan.mutate({ team_a: a, team_b: b, map, perspective: p, rounds_per_half: rph, starting_side: start, ...over });
+    // react-query clears `plan.data` when a new request starts, which would unmount the whole page (and jump to the top)
+    // while the narrative is written: keep the last plan on screen until the new one arrives
+    plan.mutate({ team_a: a, team_b: b, map, perspective: p, rounds_per_half: rph, starting_side: start, ...over }, { onSuccess: setShown });
     setSel((s) => (over?.use_llm ? s : 1));  // rewriting the same plan keeps the selected round
   };
-  useEffect(() => { if (a && b && !plan.data && !plan.isPending && !plan.isError) run(); }, [a, b]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (a && b && !shown && !plan.isPending && !plan.isError) run(); }, [a, b]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const info = (n: string) => teams?.items.find((t) => t.team.name === n);
   const sub = (n: string) => { const t = info(n); return t ? `${t.matches} partidas · ${pct(t.win_rate.value)}` : undefined; };
   const mapInfo = maps?.items.find((m) => m.map.name === map);
   const teamOpts: Array<[string, string]> = names.map((n) => [n, n]);
-  const data = plan.data;
+  const data = shown;
   const writing = plan.isPending && Boolean((plan.variables as PlanRequest | undefined)?.use_llm);
   const rounds = data?.rounds ?? [];
   const round = rounds.find((r) => r.number === sel) ?? rounds[0];
@@ -420,6 +423,9 @@ export default function ActionPlanPage() {
             <div className="min-w-0 flex-1">
               <h2 className="font-display text-base font-semibold text-fg">Narrativa de treinador (opcional)</h2>
               <p className="text-xs leading-4 text-fg-muted">Reescreve o plano em linguagem natural usando apenas os fatos e números acima. O plano estruturado continua visível.</p>
+              {writing && <p className="mt-2 text-xs leading-4 text-cyan">Escrevendo a narrativa com IA… pode levar de 1 a 2 minutos; o plano abaixo continua disponível.</p>}
+              {!writing && (data.notes_pt ?? []).filter((n) => n.startsWith("Narrativa por IA")).map((n) => <p key={n} className="mt-2 text-xs leading-4 text-amber">{n}</p>)}
+              {plan.isError && <p className="mt-2 text-xs leading-4 text-accent">Não foi possível gerar a narrativa: {String(plan.error)}</p>}
               {data.narrative_pt && <p className="mt-3 whitespace-pre-line text-sm leading-5 text-fg-secondary">{data.narrative_pt}</p>}
             </div>
             <button

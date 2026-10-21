@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -25,7 +27,7 @@ from ..schemas.plan import PlanResponse, RoundPlan
 API_URL = "https://api.anthropic.com/v1/messages"
 DEFAULT_MODEL = "claude-sonnet-5-5"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-flash-latest"  # alias: specific versions get retired for new keys (2.5-flash returned 404)
 CACHE_DIR = REPO_ROOT / ".cache" / "llm"
 
 SYSTEM = """Você é um analista de VALORANT que escreve o plano de um treinador em português do Brasil.
@@ -119,21 +121,52 @@ def _allowed(facts: dict) -> set[str]:
 
 
 # ---- API --------------------------------------------------------------------------------------------------------------
+RETRY_STATUS = (429, 500, 502, 503, 504)  # overload / rate limits are usually temporary
+RETRY_WAIT_S = (2, 5)
+CHUNK = 6  # rounds per model call
+GEMINI_FALLBACKS = ("gemini-flash-latest", "gemini-3.5-flash", "gemini-3-flash-preview")  # tried in order unless a model is forced
+
+
+def gemini_models() -> list[str]:
+    forced = os.environ.get("VAVAGYM_LLM_MODEL")
+    return [forced] if forced else list(GEMINI_FALLBACKS)
+
+
+def _post(client, url: str, headers: dict, body: dict):
+    """POST with a few retries on temporary errors (Gemini answers 503 "high demand" in spikes)."""
+    resp = client.post(url, headers=headers, json=body)
+    for wait in RETRY_WAIT_S:
+        if resp.status_code not in RETRY_STATUS:
+            break
+        log.warning("LLM returned %s, retrying in %ss", resp.status_code, wait)
+        time.sleep(wait)
+        resp = client.post(url, headers=headers, json=body)
+    resp.raise_for_status()
+    return resp
+
+
 def _complete(client, user: str) -> str:
     if provider() == "gemini":
         key = os.environ.get("GEMINI_API_KEY") or os.environ["GOOGLE_API_KEY"]
-        resp = client.post(GEMINI_URL.format(model=model_name()), headers={"x-goog-api-key": key, "content-type": "application/json"},
-                           json={"systemInstruction": {"parts": [{"text": SYSTEM}]},
-                                 "contents": [{"role": "user", "parts": [{"text": user}]}],
-                                 "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 8000, "temperature": 0.4}})
-        resp.raise_for_status()
-        parts = resp.json()["candidates"][0]["content"]["parts"]
-        return "".join(p.get("text", "") for p in parts)
-    resp = client.post(API_URL, headers={"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
-                                         "content-type": "application/json"},
-                       json={"model": model_name(), "max_tokens": 6000, "system": SYSTEM,
-                             "messages": [{"role": "user", "content": user}]})
-    resp.raise_for_status()
+        body = {"systemInstruction": {"parts": [{"text": SYSTEM}]},
+                "contents": [{"role": "user", "parts": [{"text": user}]}],
+                "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 32768, "temperature": 0.4}}  # thinking tokens count against it
+        last: Exception | None = None
+        for model in gemini_models():  # next model when this one is overloaded or retired for the key
+            try:
+                resp = _post(client, GEMINI_URL.format(model=model), {"x-goog-api-key": key, "content-type": "application/json"}, body)
+                parts = resp.json()["candidates"][0]["content"]["parts"]
+                return "".join(p.get("text", "") for p in parts)
+            except Exception as e:
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                log.warning("Gemini model %s failed: %s", model, describe_error(e))
+                last = e
+                if status not in (*RETRY_STATUS, 404) and not isinstance(e, httpx.TransportError):  # timeouts / connection drops move on
+                    raise
+        raise last  # type: ignore[misc]
+    resp = _post(client, API_URL, {"x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01",
+                                   "content-type": "application/json"},
+                 {"model": model_name(), "max_tokens": 12000, "system": SYSTEM, "messages": [{"role": "user", "content": user}]})
     return "".join(b.get("text", "") for b in resp.json()["content"] if b.get("type") == "text")
 
 
@@ -164,7 +197,22 @@ def _cached(key: str, fn):
     return value
 
 
-def _rewrite_half(client, plan: PlanResponse, rounds: list[RoundPlan], total_rounds: int) -> dict | None:
+log = logging.getLogger("vavagym.llm")
+
+
+def describe_error(e: Exception) -> str:
+    """Short pt-BR-friendly reason shown to the user and logged (never includes the API key)."""
+    resp = getattr(e, "response", None)
+    if resp is not None:
+        try:
+            msg = resp.json().get("error", {}).get("message") or resp.text
+        except ValueError:
+            msg = resp.text
+        return f"{resp.status_code}: {str(msg)[:200]}"
+    return f"{type(e).__name__}: {str(e)[:200]}"
+
+
+def _rewrite_half(client, plan: PlanResponse, rounds: list[RoundPlan], total_rounds: int, errors: list[str] | None = None) -> dict | None:
     facts = {"time": plan.team_a.name if plan.perspective == "a" else plan.team_b.name,
              "inimigo": plan.team_b.name if plan.perspective == "a" else plan.team_a.name, "mapa": plan.map.name,
              "rounds": [round_facts(r) for r in rounds]}
@@ -173,40 +221,58 @@ def _rewrite_half(client, plan: PlanResponse, rounds: list[RoundPlan], total_rou
 
     def call():
         try:
-            return _parse(_complete(client, user))
-        except Exception:  # network, auth, rate limit...: the plan keeps its template text
+            data = _parse(_complete(client, user))
+        except Exception as e:  # network, auth, rate limit...: the plan keeps its template text
+            log.warning("LLM call failed: %s", describe_error(e))
+            if errors is not None:
+                errors.append(describe_error(e))
             return None
+        if data is None and errors is not None:
+            errors.append("a resposta do modelo não veio em JSON")
+        return data
 
     return _cached(key, call)
 
 
+def _with_note(plan: PlanResponse, note: str) -> PlanResponse:
+    return plan.model_copy(update={"notes_pt": [*plan.notes_pt, note]})
+
+
 def narrate(plan: PlanResponse, client=None) -> PlanResponse:
-    """Rewrite the plan's texts with the LLM where the number check passes. Never raises."""
+    """Rewrite the plan's texts with the LLM where the number check passes. Never raises; says why when it cannot."""
     total = len(plan.rounds)
     own = client is None
+    errors: list[str] = []
     try:
-        client = client or httpx.Client(timeout=90)
-        halves = [[r for r in plan.rounds if r.half == h] for h in (1, 2)]
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            results = list(pool.map(lambda rs: _rewrite_half(client, plan, rs, total) if rs else None, halves))
-    except Exception:
-        return plan
+        client = client or httpx.Client(timeout=180)
+        # chunks of CHUNK rounds, run in parallel: short generations finish well inside the timeout; only the first
+        # chunk of each half contributes the narrative paragraph
+        chunks: list[tuple[list[RoundPlan], bool]] = []
+        for h in (1, 2):
+            rs = [r for r in plan.rounds if r.half == h]
+            chunks += [(rs[i:i + CHUNK], i == 0) for i in range(0, len(rs), CHUNK)]
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(lambda c: (_rewrite_half(client, plan, c[0], total, errors), c[1]), chunks))
+    except Exception as e:
+        log.warning("LLM narrator failed: %s", describe_error(e))
+        return _with_note(plan, f"Narrativa por IA indisponível ({describe_error(e)}).")
     finally:
         if own and client is not None:
             client.close()
 
     by_number: dict[int, dict] = {}
     narrative_parts: list[str] = []
-    for res in results:
+    for res, first in results:
         if not res:
             continue
         for item in res.get("rounds", []):
             if isinstance(item, dict) and isinstance(item.get("number"), int):
                 by_number[item["number"]] = item
-        if isinstance(res.get("narrative"), str):
+        if first and isinstance(res.get("narrative"), str):
             narrative_parts.append(res["narrative"])
 
     changed = False
+    stats = {"accepted": 0, "rejected": 0}
     new_rounds: list[RoundPlan] = []
     for r in plan.rounds:
         item = by_number.get(r.number)
@@ -216,7 +282,13 @@ def narrate(plan: PlanResponse, client=None) -> PlanResponse:
         ok = _allowed(round_facts(r))
 
         def good(s) -> bool:
-            return isinstance(s, str) and s.strip() != "" and valid(s, ok, total)
+            if not isinstance(s, str) or not s.strip():
+                return False
+            if valid(s, ok, total):
+                stats["accepted"] += 1
+                return True
+            stats["rejected"] += 1
+            return False
 
         upd: dict = {}
         if good(item.get("strategy_summary")):
@@ -245,6 +317,12 @@ def narrate(plan: PlanResponse, client=None) -> PlanResponse:
             everything |= _allowed(round_facts(r))
         if not valid(narrative, everything, total):
             narrative = None
+    notes = list(plan.notes_pt)
+    if errors:
+        notes.append(f"Narrativa por IA incompleta: {errors[0]}")
+    if stats["rejected"]:
+        notes.append(f"Narrativa por IA: {stats['rejected']} trecho(s) descartado(s) por citar números fora dos fatos calculados; "
+                     f"{stats['accepted']} reescrito(s).")
     if not changed and narrative is None:
-        return plan
-    return plan.model_copy(update={"rounds": new_rounds, "narrative_pt": narrative, "text_source": "llm"})
+        return plan.model_copy(update={"notes_pt": notes}) if notes != plan.notes_pt else plan
+    return plan.model_copy(update={"rounds": new_rounds, "narrative_pt": narrative, "text_source": "llm", "notes_pt": notes})
