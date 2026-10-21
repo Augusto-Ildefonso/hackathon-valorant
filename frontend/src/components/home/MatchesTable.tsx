@@ -1,6 +1,7 @@
 // Match list table used by Home ("Partidas recentes") and the Partidas page. Owner: Stream E.
 import { Link } from "react-router-dom";
 import type { MatchListItem } from "@/api/types";
+import { MapIcon } from "@/components/ui/AgentIcon";
 import { DataTable } from "@/components/ui/DataTable";
 import { dateShort } from "@/lib/format";
 import { tournamentLabel } from "@/lib/tournaments";
@@ -23,7 +24,7 @@ export function MatchesTable({ items, onOpen }: { items: MatchListItem[]; onOpen
         { key: "a", header: "Time A", align: "right", className: "font-semibold text-fg", render: (m) => team(m.team_a.team.name) },
         { key: "s", header: "Placar", width: 90, align: "center", className: `${mono} text-fg`, render: (m) => `${m.team_a.score} × ${m.team_b.score}` },
         { key: "b", header: "Time B", className: "font-semibold text-fg", render: (m) => team(m.team_b.team.name) },
-        { key: "m", header: "Mapa", width: 100, render: (m) => m.map.name },
+        { key: "m", header: "Mapa", width: 130, render: (m) => <MapIcon map={m.map} showName /> },
         { key: "r", header: "", width: 110, align: "right", className: "text-accent", render: () => "Ver relatório →" },
       ]}
     />

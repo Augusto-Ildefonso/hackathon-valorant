@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { useMatch, useMatchKills } from "@/api/hooks";
 import type { KillEvent, MatchReport, RoundSummary } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
+import { AgentIcon, WeaponIcon } from "@/components/ui/AgentIcon";
 import { Badge } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -30,12 +31,12 @@ function Scoreboard({ r, side }: { r: MatchReport; side: "a" | "b" }) {
         rows={rows}
         rowKey={(p) => p.player.puuid}
         columns={[
-          { key: "p", header: "Jogador", width: 142, className: "font-semibold text-fg", render: (p) => (
+          { key: "p", header: "Jogador", width: 120, className: "font-semibold text-fg", render: (p) => (
             <Link to={`/jogador/${p.player.puuid}`} className={`truncate hover:text-accent ${r.mvp?.puuid === p.player.puuid ? "text-amber" : ""}`}>
               {p.player.riot_id}{r.mvp?.puuid === p.player.puuid && <span className="ml-1">★ MVP</span>}
             </Link>
           ) },
-          { key: "a", header: "Agente", width: 84, render: (p) => p.agent.name ?? "Agente desconhecido" },
+          { key: "a", header: "Agente", width: 106, render: (p) => <AgentIcon agent={p.agent} size={24} showName /> },
           { key: "k", header: "K", width: 30, align: "right", className: `${mono} text-fg`, render: (p) => p.kills },
           { key: "d", header: "D", width: 30, align: "right", className: mono, render: (p) => p.deaths },
           { key: "as", header: "A", width: 30, align: "right", className: mono, render: (p) => p.assists },
@@ -170,7 +171,8 @@ function Replay({ r, round, setRound }: { r: MatchReport; round: number; setRoun
                   <span className="mx-2 text-fg-secondary">→</span>
                   <span className={TEAM[k.victim.team].text}>{k.victim.riot_id}</span>
                 </span>
-                <span className="block text-[11px] text-fg-muted">
+                <span className="flex items-center gap-[6px] text-[11px] text-fg-muted">
+                  {k.damage_type === "weapon" && <WeaponIcon weapon={k.weapon} size={16} />}
                   {k.weapon?.name ?? (k.damage_type === "weapon" ? "Arma desconhecida" : k.damage_type)}
                   {k.damage_type === "ability" && " · habilidade"}{k.damage_type === "bomb" && " · spike"}
                 </span>

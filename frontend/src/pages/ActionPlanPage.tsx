@@ -1,11 +1,11 @@
 // Action Plan (Figma "Screen / Action Plan", 32:432): round-by-round plan for the whole match. Owner: Stream D
 // (layout from the design by Stream E). Data: POST /api/plan (stub returns a fixture until Stream D ships it).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMaps, useMeta, usePlan, useTeams } from "@/api/hooks";
 import type { PlanRequest, PlanResponse, RoundPlan, RoundType, Side } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
-import { AgentIcon } from "@/components/ui/AgentIcon";
+import { AgentIcon, MapIcon, WeaponIcon } from "@/components/ui/AgentIcon";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { InsightCard } from "@/components/ui/InsightList";
@@ -20,13 +20,13 @@ const SIDE_SHORT: Record<Side, string> = { attack: "ATQ", defense: "DEF" };
 const label = "font-display text-xs font-semibold uppercase leading-4 tracking-[0.96px] text-fg-muted";
 const mono = "font-mono font-medium";
 
-function Picker({ title, value, sub, options, onChange, ring }: {
-  title: string; value: string; sub?: string; options: Array<[string, string]>; onChange: (v: string) => void; ring?: string;
+function Picker({ title, value, sub, options, onChange, ring, icon }: {
+  title: string; value: string; sub?: string; options: Array<[string, string]>; onChange: (v: string) => void; ring?: string; icon?: ReactNode;
 }) {
   return (
     <label className={`relative flex min-w-0 flex-1 cursor-pointer flex-col gap-[2px] rounded-sm border bg-surface px-4 py-3 ${ring ?? "border-border"}`}>
       <span className={label}>{title}</span>
-      <span className="flex items-center justify-between gap-2 text-sm font-medium text-fg"><span className="truncate">{options.find(([v]) => v === value)?.[1] ?? value}</span><span className="text-[10px] text-fg-muted">▾</span></span>
+      <span className="flex items-center justify-between gap-2 text-sm font-medium text-fg"><span className="flex min-w-0 items-center gap-2">{icon}<span className="truncate">{options.find(([v]) => v === value)?.[1] ?? value}</span></span><span className="text-[10px] text-fg-muted">▾</span></span>
       <span className="text-[11px] leading-[14px] text-fg-muted">{sub ?? " "}</span>
       <select aria-label={title} value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 w-full cursor-pointer opacity-0">
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -35,13 +35,26 @@ function Picker({ title, value, sub, options, onChange, ring }: {
   );
 }
 
-function buySummary(r: RoundPlan): string {
-  const counts = new Map<string, number>();
+/** Weapons of the round's buy as pictures with their counts (Figma: "[Vandal] ×3 [Operator] ×1 [Phantom]"). */
+function BuyIcons({ r }: { r: RoundPlan }) {
+  const counts = new Map<string, { weapon: RoundPlan["buy"][number]["weapon"]; n: number }>();
   for (const b of r.buy) {
-    const n = b.weapon?.name ?? "Arma desconhecida";
-    counts.set(n, (counts.get(n) ?? 0) + 1);
+    if (!b.weapon) continue;
+    const e = counts.get(b.weapon.id) ?? { weapon: b.weapon, n: 0 };
+    e.n++;
+    counts.set(b.weapon.id, e);
   }
-  return [...counts].map(([n, c]) => (c > 1 ? `${n} ×${c}` : n)).join(", ") || "—";
+  if (!counts.size) return <span>—</span>;
+  return (
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      {[...counts.values()].map(({ weapon, n }) => (
+        <span key={weapon!.id} className="inline-flex items-center gap-1">
+          <WeaponIcon weapon={weapon} size={14} />
+          {n > 1 && <span className="font-mono text-xs text-fg-secondary">×{n}</span>}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 function RoundChip({ r, selected, onClick }: { r: RoundPlan; selected: boolean; onClick: () => void }) {
@@ -86,7 +99,11 @@ function RoundDetail({ plan, round, prev }: { plan: PlanResponse; round: RoundPl
           <div className="flex flex-col gap-2">
             {round.buy.map((b, i) => (
               <div key={i} className="rounded-sm border border-border bg-surface-raised/50 px-3 py-2">
-                <p className="text-sm font-semibold capitalize text-fg">{b.role} <span className="font-normal text-fg-secondary">· {b.weapon?.name ?? "Guardar"}{b.armor !== "none" ? ` + escudo ${b.armor === "light" ? "leve" : "pesado"}` : ""}</span></p>
+                <p className="text-sm font-semibold capitalize text-fg">{b.role}</p>
+                <p className="flex items-center gap-[6px] text-[11px] leading-4 text-fg-secondary">
+                  {b.weapon && <WeaponIcon weapon={b.weapon} size={16} />}
+                  {b.weapon?.name ?? "Guardar"}{b.armor !== "none" ? ` + escudo ${b.armor === "light" ? "leve" : "pesado"}` : ""}
+                </p>
                 <p className="text-[11px] leading-[14px] text-fg-muted">{b.reason_pt}</p>
               </div>
             ))}
@@ -195,7 +212,7 @@ export default function ActionPlanPage() {
         <Picker title="Time A" value={a} sub={sub(a)} options={teamOpts} onChange={setA} ring="border-cyan" />
         <button onClick={() => { setA(b); setB(a); }} aria-label="Trocar times" className="shrink-0 self-center rounded-sm border border-border bg-surface-raised px-3 py-2 text-fg-secondary hover:text-fg">⇄</button>
         <Picker title="Time B (inimigo)" value={b} sub={sub(b)} options={teamOpts} onChange={setB} ring="border-amber" />
-        <Picker title="Mapa" value={map} sub={mapInfo ? `${mapInfo.matches} partidas` : undefined} options={(meta?.maps ?? [{ name: "Ascent" }]).map((m) => [m.name, m.name])} onChange={setMap} />
+        <Picker title="Mapa" value={map} icon={(() => { const mr = meta?.maps.find((x) => x.name === map); return mr ? <MapIcon map={mr} /> : null; })()} sub={mapInfo ? `${mapInfo.matches} partidas` : undefined} options={(meta?.maps ?? [{ name: "Ascent" }]).map((m) => [m.name, m.name])} onChange={setMap} />
         <Picker title="Rodadas/tempo" value={String(rph)} sub={`${rph * 2} rounds`} options={[5, 6, 8, 10, 12].map((n) => [String(n), String(n)])} onChange={(v) => setRph(Number(v))} />
         <Picker title="Começa em" value={start} sub={`troca no round ${rph + 1}`} options={[["attack", "Ataque"], ["defense", "Defesa"]]} onChange={(v) => setStart(v as Side)} />
         <button onClick={() => run()} disabled={!a || !b || plan.isPending} className="shrink-0 self-center rounded-sm bg-accent px-6 py-3 font-display text-xs font-semibold uppercase tracking-[0.96px] text-on-accent hover:bg-accent-hover disabled:opacity-50">
@@ -223,7 +240,7 @@ export default function ActionPlanPage() {
               <div className="grid grid-cols-5 gap-3">
                 {data.agents.map((g) => (
                   <div key={g.agent.id} className="flex flex-col gap-2 rounded-sm border border-border bg-surface-raised/50 p-3">
-                    <AgentIcon agent={g.agent} size={40} />
+                    <AgentIcon agent={g.agent} size={48} />
                     <p className="text-sm font-semibold text-fg">{g.agent.name ?? "Agente desconhecido"}</p>
                     {g.role && <Badge tone="red" className="self-start">{g.role}</Badge>}
                     <p className="text-[11px] leading-[14px] text-fg-muted">{g.reason_pt} · n = {g.evidence.sample_size}{g.evidence.low_sample ? " ⚠" : ""}</p>
@@ -279,7 +296,7 @@ export default function ActionPlanPage() {
                 { key: "n", header: "Rd", width: 32, className: `${mono} text-fg-muted`, render: (r) => r.number },
                 { key: "s", header: "Lado", width: 50, className: `font-display text-xs font-semibold ${""}`, render: (r) => <span className={r.side === "attack" ? "text-accent" : "text-violet"}>{SIDE_SHORT[r.side]}</span> },
                 { key: "t", header: "Tipo", width: 80, render: (r) => <Badge tone={TYPE_TONE[r.round_type]}>{TYPE_SHORT[r.round_type]}</Badge> },
-                { key: "b", header: "Compra recomendada", width: 220, render: (r) => buySummary(r) },
+                { key: "b", header: "Compra recomendada", width: 220, render: (r) => <BuyIcons r={r} /> },
                 { key: "p", header: "Plano resumido", render: (r) => r.strategy.summary_pt },
                 { key: "e", header: "Movimento provável do inimigo", width: 230, render: (r) => r.enemy_probable_strategy.summary_pt },
                 { key: "w", header: "Base", width: 40, align: "center", render: (r) => <span className={`size-2 rounded-full ${r.base_scenario_result === "win" ? "bg-green" : "bg-accent"}`} /> },

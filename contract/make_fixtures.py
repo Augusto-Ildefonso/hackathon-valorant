@@ -30,14 +30,15 @@ vandal_id = pick(catalog["weapons"], "Vandal")["id"]
 phantom_id = pick(catalog["weapons"], "Phantom")["id"]
 classic_id = pick(catalog["weapons"], "Classic")["id"]
 
-ASCENT = {"codename": "Ascent", "name": "Ascent", "has_minimap": True, "minimap_url": f"/assets/Maps/{ascent_id}.png"}
-ABYSS = {"codename": "Infinity", "name": "Abyss", "has_minimap": False, "minimap_url": None}
-JETT = {"id": jett_id, "name": "Jett", "name_inferred": False, "icon_url": f"/assets/Characters/{jett_id}_small.png"}
-SOVA = {"id": sova_id, "name": "Sova", "name_inferred": False, "icon_url": f"/assets/Characters/{sova_id}_small.png"}
+ASCENT = {"codename": "Ascent", "name": "Ascent", "has_minimap": True, "minimap_url": f"/assets/Maps/{ascent_id}.png",
+          "thumb_url": f"/api/thumb/Maps/{ascent_id}_listview?w=120"}
+ABYSS = {"codename": "Infinity", "name": "Abyss", "has_minimap": False, "minimap_url": None, "thumb_url": None}
+JETT = {"id": jett_id, "name": "Jett", "name_inferred": False, "icon_url": f"/api/thumb/Characters/{jett_id}?w=96"}
+SOVA = {"id": sova_id, "name": "Sova", "name_inferred": False, "icon_url": f"/api/thumb/Characters/{sova_id}?w=96"}
 UNKNOWN_AGENT = {"id": "EFBA5359-0000-0000-0000-000000000000", "name": None, "name_inferred": False, "icon_url": None}
-VANDAL = {"id": vandal_id, "name": "Vandal", "name_inferred": False, "icon_url": f"/assets/Weapons/{vandal_id}.png"}
-PHANTOM = {"id": phantom_id, "name": "Phantom", "name_inferred": False, "icon_url": f"/assets/Weapons/{phantom_id}.png"}
-CLASSIC = {"id": classic_id, "name": "Classic", "name_inferred": False, "icon_url": f"/assets/Weapons/{classic_id}.png"}
+VANDAL = {"id": vandal_id, "name": "Vandal", "name_inferred": False, "icon_url": f"/api/thumb/Weapons/{vandal_id}?w=160"}
+PHANTOM = {"id": phantom_id, "name": "Phantom", "name_inferred": False, "icon_url": f"/api/thumb/Weapons/{phantom_id}?w=160"}
+CLASSIC = {"id": classic_id, "name": "Classic", "name_inferred": False, "icon_url": f"/api/thumb/Weapons/{classic_id}?w=160"}
 FATEC = {"name": "Fatec PG"}
 PANTERAO = {"name": "Panterão Gaming"}
 P1 = {"puuid": "puuid-0001", "riot_id": "Didado#BR1"}

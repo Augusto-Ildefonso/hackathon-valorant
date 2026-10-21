@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMaps, useMatches, useTeams } from "@/api/hooks";
 import { MatchesTable } from "@/components/home/MatchesTable";
 import { TopPlayersPanel } from "@/components/home/Leaderboards";
+import { MapIcon } from "@/components/ui/AgentIcon";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
@@ -57,8 +58,8 @@ export function MapsListPage() {
             rowKey={(m) => m.map.codename}
             columns={[
               { key: "m", header: "Mapa", className: "font-semibold text-fg", render: (m) => (
-                <Link className="hover:text-accent" to={`/mapa/${m.map.name}`}>
-                  {m.map.name}{!m.map.has_minimap && <span className="ml-2 text-xs font-normal text-fg-muted">(sem minimapa)</span>}
+                <Link className="inline-flex items-center hover:text-accent" to={`/mapa/${m.map.name}`}>
+                  <MapIcon map={m.map} showName />{!m.map.has_minimap && <span className="ml-2 text-xs font-normal text-fg-muted">(sem minimapa)</span>}
                 </Link>
               ) },
               { key: "n", header: "Partidas", width: 90, align: "right", className: mono, render: (m) => m.matches },

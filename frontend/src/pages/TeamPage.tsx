@@ -2,6 +2,7 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTeam } from "@/api/hooks";
 import type { RoleName, RoundType, TrendPoint } from "@/api/types";
+import { MapIcon } from "@/components/ui/AgentIcon";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -120,7 +121,7 @@ export default function TeamPage() {
             rows={t.by_map}
             rowKey={(m) => m.map.codename}
             columns={[
-              { key: "m", header: "Mapa", className: "font-semibold text-fg", render: (m) => <Link className="hover:text-accent" to={`/mapa/${m.map.name}`}>{m.map.name}</Link> },
+              { key: "m", header: "Mapa", className: "font-semibold text-fg", render: (m) => <Link className="inline-flex items-center hover:text-accent" to={`/mapa/${m.map.name}`}><MapIcon map={m.map} showName /></Link> },
               { key: "vd", header: "V–D", width: 56, align: "right", className: mono, render: (m) => {
                 const w = Math.round((m.win_rate.value ?? 0) * m.matches);
                 return `${w}–${m.matches - w}`;
@@ -151,7 +152,7 @@ export default function TeamPage() {
           columns={[
             { key: "d", header: "Data", width: 90, className: `${mono} text-fg-muted`, render: (m) => dateShort(m.date) },
             { key: "o", header: "Adversário", className: "font-semibold text-fg", render: (m) => (m.team_a.team.name === t.team.name ? m.team_b.team.name : m.team_a.team.name) },
-            { key: "m", header: "Mapa", width: 100, render: (m) => m.map.name },
+            { key: "m", header: "Mapa", width: 130, render: (m) => <MapIcon map={m.map} showName /> },
             { key: "s", header: "Placar", width: 90, align: "center", className: `${mono} text-fg`, render: (m) => (m.team_a.team.name === t.team.name ? `${m.team_a.score} × ${m.team_b.score}` : `${m.team_b.score} × ${m.team_a.score}`) },
             { key: "r", header: "Resultado", width: 100, render: (m) => {
               const win = m.winner === (m.team_a.team.name === t.team.name ? "a" : "b");

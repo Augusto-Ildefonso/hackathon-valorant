@@ -13,7 +13,7 @@ export interface Evidence { metric: string; value: number; baseline?: number | n
 export interface Insight { id: string; kind: InsightKind; text_pt: string; evidence: Evidence; low_sample: boolean }
 export interface AgentRef { id: string; name: string | null; name_inferred: boolean; icon_url: string | null }
 export interface WeaponRef { id: string; name: string | null; name_inferred: boolean; icon_url: string | null }
-export interface MapRef { codename: string; name: string; has_minimap: boolean; minimap_url: string | null }
+export interface MapRef { codename: string; name: string; has_minimap: boolean; minimap_url: string | null; thumb_url?: string | null }
 export interface TeamRef { name: string }
 export interface PlayerRef { puuid: string; riot_id: string }
 export interface MatchSide { team: TeamRef; score: number }

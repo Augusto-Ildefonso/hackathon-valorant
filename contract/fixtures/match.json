@@ -7,7 +7,8 @@
     "codename": "Ascent",
     "name": "Ascent",
     "has_minimap": true,
-    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png",
+    "thumb_url": "/api/thumb/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319_listview?w=120"
   },
   "team_a": {
     "team": {
@@ -91,7 +92,7 @@
         "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
         "name": "Jett",
         "name_inferred": false,
-        "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+        "icon_url": "/api/thumb/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95?w=96"
       },
       "kills": 18,
       "deaths": 14,

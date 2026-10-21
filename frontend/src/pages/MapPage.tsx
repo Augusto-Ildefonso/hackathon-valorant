@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useHeatmap, useMap, useMeta } from "@/api/hooks";
 import type { HeatLayer } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
+import { CatalogIcon } from "@/components/ui/AgentIcon";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FilterChip } from "@/components/ui/FilterChip";
@@ -108,10 +109,10 @@ export default function MapPage() {
               </Panel>
 
               <Panel title="Agentes mais usados" subtitle="% de jogadores por partida">
-                <Usage rows={m.top_agents.slice(0, 5)} color="bg-cyan" unknown="Agente desconhecido" />
+                <Usage rows={m.top_agents.slice(0, 5)} color="bg-cyan" unknown="Agente desconhecido" kind="agent" />
               </Panel>
               <Panel title="Armas mais usadas" subtitle="% de rounds com a arma comprada">
-                <Usage rows={m.top_weapons.slice(0, 5)} color="bg-amber" unknown="Arma desconhecida" />
+                <Usage rows={m.top_weapons.slice(0, 5)} color="bg-amber" unknown="Arma desconhecida" kind="weapon" />
               </Panel>
             </div>
           </div>
@@ -128,12 +129,17 @@ export default function MapPage() {
   );
 }
 
-function Usage({ rows, color, unknown }: { rows: Array<{ id: string; name: string | null; share: number }>; color: string; unknown: string }) {
+function Usage({ rows, color, unknown, kind }: {
+  rows: Array<{ id: string; name: string | null; icon_url: string | null; share: number }>; color: string; unknown: string; kind: "agent" | "weapon";
+}) {
   return (
     <div className="flex flex-col">
       {rows.map((r) => (
         <div key={r.id} className="flex items-center gap-3 border-b border-border py-3 text-sm">
-          <span className="w-[186px] shrink-0 font-semibold text-fg">{r.name ?? unknown}</span>
+          <span className="flex w-[186px] shrink-0 items-center gap-2 font-semibold text-fg">
+            <CatalogIcon url={r.icon_url} name={r.name ?? unknown} kind={kind} w={kind === "agent" ? 24 : 40} h={kind === "agent" ? 24 : 16} />
+            <span className="truncate">{r.name ?? unknown}</span>
+          </span>
           <Meter width={156} color={color} value={r.share} label={pct(r.share)} />
         </div>
       ))}

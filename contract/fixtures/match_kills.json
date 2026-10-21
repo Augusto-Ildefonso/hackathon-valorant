@@ -4,7 +4,8 @@
     "codename": "Ascent",
     "name": "Ascent",
     "has_minimap": true,
-    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png",
+    "thumb_url": "/api/thumb/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319_listview?w=120"
   },
   "has_minimap": true,
   "teams": {
@@ -28,7 +29,7 @@
           "id": "320B2A48-4D9B-A075-30F1-1F93A9B638FA",
           "name": "Sova",
           "name_inferred": false,
-          "icon_url": "/assets/Characters/320B2A48-4D9B-A075-30F1-1F93A9B638FA_small.png"
+          "icon_url": "/api/thumb/Characters/320B2A48-4D9B-A075-30F1-1F93A9B638FA?w=96"
         },
         "pos": {
           "x": 0.61,
@@ -44,7 +45,7 @@
           "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
           "name": "Jett",
           "name_inferred": false,
-          "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+          "icon_url": "/api/thumb/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95?w=96"
         },
         "pos": {
           "x": 0.42,
@@ -57,7 +58,7 @@
         "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
         "name": "Vandal",
         "name_inferred": false,
-        "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+        "icon_url": "/api/thumb/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872?w=160"
       },
       "damage_type": "weapon",
       "headshot": null,

@@ -16,6 +16,7 @@ Frontend types: `frontend/src/api/types.ts` mirrors the models (Stream E keeps t
 - Additive fields added while building the screens from Figma (Stream E): leaderboard rows carry `kd/adr/hs_pct/first_kills` (players) and `wins/losses` (teams); `PlayerStats` has `shots/first_kills/first_deaths/traded_deaths`; `PlayerProfile.roles` now lists **all five** roles sorted by score (the UI shows the top 2 as badges) and `weapons` also has aggregated rows (`buy_type: null`) per weapon; `RosterMember` has `kd/adr`; `TrendPoint` has `map_name`. Leaderboards rank players with >= 5 maps.
 - Errors: standard FastAPI `{"detail": "..."}` with 404 for unknown entities, 422 for bad params.
 - Static catalog images: `/assets/<Folder>/<id>.png` (served from `public_catalog/`); API payloads already carry full `icon_url`/`minimap_url`.
+- **List pictures:** `icon_url` (agents, weapons) and `MapRef.thumb_url` point to `GET /api/thumb/{Characters|Weapons|Maps}/{file-stem}?w=<px>`, small cached PNG thumbnails (the originals are ~1024px / 850 KB). `null`/missing => the UI shows a neutral tile (unknown agents/weapons, and Abyss/Summit which have no catalog image). Every list that names an agent, weapon or map must show its picture beside the name (Figma rule, `CLAUDE.md`).
 
 ## Endpoints
 | Method + path | Query / body | Response model | Owner |

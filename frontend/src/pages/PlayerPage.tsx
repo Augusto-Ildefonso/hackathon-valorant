@@ -2,6 +2,7 @@
 import { Link, useParams } from "react-router-dom";
 import { useMeta, usePlayer } from "@/api/hooks";
 import type { PlayerProfile, RoleName, RoleScore } from "@/api/types";
+import { AgentIcon, MapIcon, WeaponIcon } from "@/components/ui/AgentIcon";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -71,7 +72,12 @@ export default function PlayerPage() {
           <h1 className="truncate font-display text-[32px] font-bold leading-10 text-fg">{p.player.riot_id}</h1>
           <div className="flex flex-wrap items-center gap-3 text-sm leading-5">
             {team && <Link to={`/time/${encodeURIComponent(team.name)}`}><Badge tone="neutral">{team.name}</Badge></Link>}
-            {fav && <span className="text-fg-secondary">Agente favorito: {fav.agent.name ?? "Agente desconhecido"} ({pct(favShare)} das partidas)</span>}
+            {fav && (
+              <span className="inline-flex items-center gap-2 text-fg-secondary">
+                <AgentIcon agent={fav.agent} size={24} />
+                Agente favorito: {fav.agent.name ?? "Agente desconhecido"} ({pct(favShare)} das partidas)
+              </span>
+            )}
             <span className="text-fg-muted">{stats.matches} mapas · {int(stats.rounds)} rounds</span>
           </div>
         </div>
@@ -137,8 +143,8 @@ export default function PlayerPage() {
               rows={p.agents.slice(0, 4)}
               rowKey={(a) => a.agent.id}
               columns={[
-                { key: "a", header: "Agente", width: 106, className: "font-semibold text-fg", render: (a) => a.agent.name ?? "Agente desconhecido" },
-                { key: "m", header: "Partidas", render: (a) => <Meter width={126} value={a.matches / Math.max(stats.matches, 1)} label={pct(a.matches / Math.max(stats.matches, 1))} /> },
+                { key: "a", header: "Agente", width: 126, className: "font-semibold text-fg", render: (a) => <AgentIcon agent={a.agent} size={24} showName /> },
+                { key: "m", header: "Partidas", render: (a) => <Meter width={96} value={a.matches / Math.max(stats.matches, 1)} label={pct(a.matches / Math.max(stats.matches, 1))} /> },
               ]}
             />
             <p className="text-[11px] leading-[14px] text-fg-muted">
@@ -155,7 +161,7 @@ export default function PlayerPage() {
             rowKey={(w) => w.weapon.id}
             emptyText="Poucos rounds por arma para exibir."
             columns={[
-              { key: "w", header: "Arma", className: "font-semibold text-fg", render: (w) => w.weapon.name ?? "Arma desconhecida" },
+              { key: "w", header: "Arma", className: "font-semibold text-fg", render: (w) => <WeaponIcon weapon={w.weapon} showName /> },
               { key: "r", header: "Rounds", width: 64, align: "right", className: mono, render: (w) => w.rounds },
               { key: "v", header: "Vitórias", width: 90, render: (w) => <Meter width={46} color="bg-green" value={w.round_win_rate.value} label={pct(w.round_win_rate.value)} /> },
               { key: "k", header: "Abates", width: 64, align: "right", className: mono, render: (w) => w.kills },
@@ -169,7 +175,7 @@ export default function PlayerPage() {
             rows={p.by_map}
             rowKey={(m) => m.map.codename}
             columns={[
-              { key: "m", header: "Mapa", className: "font-semibold text-fg", render: (m) => <Link className="hover:text-accent" to={`/mapa/${m.map.name}`}>{m.map.name}</Link> },
+              { key: "m", header: "Mapa", className: "font-semibold text-fg", render: (m) => <Link className="inline-flex items-center hover:text-accent" to={`/mapa/${m.map.name}`}><MapIcon map={m.map} showName /></Link> },
               { key: "k", header: "Abates", width: 60, align: "right", className: `${mono} text-green`, render: (m) => m.kills },
               { key: "d", header: "Mortes", width: 60, align: "right", className: `${mono} text-accent`, render: (m) => m.deaths },
               { key: "kd", header: "K/D", width: 56, align: "right", className: mono, render: (m) => num(m.kd.value) },

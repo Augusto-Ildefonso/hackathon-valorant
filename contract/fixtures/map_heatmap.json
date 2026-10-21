@@ -3,7 +3,8 @@
     "codename": "Ascent",
     "name": "Ascent",
     "has_minimap": true,
-    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png"
+    "minimap_url": "/assets/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319.png",
+    "thumb_url": "/api/thumb/Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319_listview?w=120"
   },
   "side": "both",
   "grid_size": 8,
@@ -362,13 +363,13 @@
       "id": "ADD6443A-41BD-E414-F6AD-E58D267F4E95",
       "name": "Jett",
       "name_inferred": false,
-      "icon_url": "/assets/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_small.png"
+      "icon_url": "/api/thumb/Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95?w=96"
     },
     {
       "id": "320B2A48-4D9B-A075-30F1-1F93A9B638FA",
       "name": "Sova",
       "name_inferred": false,
-      "icon_url": "/assets/Characters/320B2A48-4D9B-A075-30F1-1F93A9B638FA_small.png"
+      "icon_url": "/api/thumb/Characters/320B2A48-4D9B-A075-30F1-1F93A9B638FA?w=96"
     }
   ],
   "weapons_used": [
@@ -376,13 +377,13 @@
       "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
       "name": "Vandal",
       "name_inferred": false,
-      "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+      "icon_url": "/api/thumb/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872?w=160"
     },
     {
       "id": "EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A",
       "name": "Phantom",
       "name_inferred": false,
-      "icon_url": "/assets/Weapons/EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A.png"
+      "icon_url": "/api/thumb/Weapons/EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A?w=160"
     }
   ]
 }

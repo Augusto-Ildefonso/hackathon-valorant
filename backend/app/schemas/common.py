@@ -68,6 +68,7 @@ class MapRef(Model):
     name: str  # public name, e.g. "Lotus"
     has_minimap: bool
     minimap_url: str | None = None
+    thumb_url: str | None = None  # small wide banner for lists (None => no image in the catalog)
 
 
 class TeamRef(Model):

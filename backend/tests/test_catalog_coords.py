@@ -8,7 +8,7 @@ cat = get_catalog()
 
 def test_known_and_unknown_agent():
     jett = next(a for a, (_, n) in cat._agents.items() if n == "Jett")
-    assert cat.agent(jett).name == "Jett" and cat.agent(jett).icon_url.startswith("/assets/Characters/")
+    assert cat.agent(jett).name == "Jett" and cat.agent(jett).icon_url.startswith("/api/thumb/Characters/")
     unknown = cat.agent("efba5359-0000-0000-0000-000000000000")
     assert unknown.name is None and unknown.icon_url is None and not unknown.name_inferred
     assert cat.agent(None) is None
@@ -21,9 +21,10 @@ def test_unknown_weapon_has_no_invented_name():
 
 def test_map_refs():
     assert cat.map_ref("Lotus").has_minimap and cat.map_ref("Lotus").codename == "Jam"
+    assert cat.map_ref("Lotus").thumb_url.startswith("/api/thumb/Maps/")
     for name in ("Abyss", "Summit"):
         ref = cat.map_ref(name)
-        assert not ref.has_minimap and ref.minimap_url is None
+        assert not ref.has_minimap and ref.minimap_url is None and ref.thumb_url is None
     assert set(MAP_NAMES.values()) == {"Ascent", "Lotus", "Haven", "Split", "Sunset", "Abyss", "Summit", "Breeze", "Pearl", "Fracture"}
 
 

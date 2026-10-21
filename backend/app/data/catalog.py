@@ -51,7 +51,7 @@ class Catalog:
         if not hit:
             return AgentRef(id=agent_id, name=None, name_inferred=False, icon_url=None)
         cid, nm = hit
-        return AgentRef(id=agent_id, name=nm, icon_url=f"/assets/Characters/{cid}_small.png")
+        return AgentRef(id=agent_id, name=nm, icon_url=f"/api/thumb/Characters/{cid}?w=96")
 
     def weapon(self, weapon_id: str | None) -> WeaponRef | None:
         if not weapon_id:
@@ -60,13 +60,14 @@ class Catalog:
         if not hit:
             return WeaponRef(id=weapon_id, name=None, name_inferred=False, icon_url=None)
         wid, nm = hit
-        return WeaponRef(id=weapon_id, name=nm, icon_url=f"/assets/Weapons/{wid}.png")
+        return WeaponRef(id=weapon_id, name=nm, icon_url=f"/api/thumb/Weapons/{wid}?w=160")
 
     def map_ref(self, public_name: str) -> MapRef:
         t = self._maps.get(public_name)
         has = bool(t and t.usable)
         return MapRef(codename=CODENAMES.get(public_name, public_name), name=public_name, has_minimap=has,
-                      minimap_url=f"/assets/Maps/{t.id}.png" if has else None)
+                      minimap_url=f"/assets/Maps/{t.id}.png" if has else None,
+                      thumb_url=f"/api/thumb/Maps/{t.id}_listview?w=120" if has else None)
 
     def transform(self, public_name: str) -> MapTransform | None:
         t = self._maps.get(public_name)
