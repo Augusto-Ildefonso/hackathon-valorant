@@ -28,7 +28,8 @@ from .baselines import Baselines, get_baselines
 from .core import f_num, f_pct, make_insight
 from .map_intel import SiteView, avg_plant_ms, enemy_route, shrink, site_views
 from .play_model import get_win_model
-from .plays import plan_round, timing_of
+from .map_plan import build_map_plan
+from .plays import History, plan_round, timing_of
 from .scouting import PlayerScout, assign_roles, scout_team
 
 TYPE_PT = {"pistol": "pistol", "eco": "eco", "semi_eco": "semi-eco", "force": "force buy", "full_buy": "full buy"}
@@ -227,6 +228,8 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
         notes.append(f"{en} tem só {n_en_map} partida(s) em {map_name}: as tendências do inimigo são do histórico geral.")
     if not views:
         notes.append(f"Sem plantes registrados em {map_name}: a escolha de site não tem dados.")
+    notes.append("Cenário base: as vitórias são distribuídas pela probabilidade de cada round (um time com 40% vence cerca de 4 a cada 10 rounds), "
+                 "em vez de repetir sempre o resultado mais provável; a contingência mostra o que muda se o resultado for outro.")
     notes.append("O plano descreve jogadas típicas (posição, momento, funções e economia); não há dados de utilitários ou lineups.")
     if win_model is not None and win_model.adopted:
         r = win_model.report
@@ -247,6 +250,10 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
 
     buys_me = _Buys(full, tr, me, [p.puuid for p in my_players])
     route_cache: dict[tuple, tuple] = {}
+    plan_cache: dict = {}  # heavy map_plan pieces shared between rounds
+    hist = History()
+    acc = 0.5  # error-diffusion accumulator of the base scenario
+    ehist: dict = {"site": None, "lost": False}  # where the enemy last attacked and whether it lost that round
 
     sm, se = _State(), _State()
     rounds: list[RoundPlan] = []
@@ -284,18 +291,25 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
         p = min(max(p, 0.02), 0.98)
         n_sample = min(pm["sample_size"], pe["sample_size"])
         wp = make_stat(p, n_sample, "rounds")
-        result = "win" if p > 0.5 else "loss"
+        # base scenario: wins are spread by probability (error diffusion), so a team that wins 40% of its rounds wins about
+        # 4 in 10 of them instead of losing all of them; deterministic for the same request
+        acc += p
+        result = "win" if acc >= 1 else "loss"
+        if result == "win":
+            acc -= 1
 
         # ---- strategy
-        views_for_round = views
-        rp = plan_round(side_me, t_me, views_for_round, me, en, my_players, en_players, my_plant_ms, en_plant_ms, base) if views else None
+        if pistol:
+            hist = History()
+        hist.n = n
+        rp = plan_round(side_me, t_me, views, me, en, my_players, en_players, my_plant_ms, en_plant_ms, base, hist) if views else None
         roles = assign_roles(my_players, side_me, base)
         if rp is not None:
             low = rp.best.sample < LOW_SITE_SAMPLE or wp.low_sample
             side_pt = {"attack": "no ataque", "defense": "na defesa"}
             form = (f"Histórico de vitórias do time em rounds {TYPE_PT[t_me]} {side_pt[side_me]}: {f_pct(pm['value'] * 100)} (n = {pm['sample_size']}); "
                     f"o {en} em rounds {TYPE_PT[t_en]} {side_pt[side_en]}: {f_pct(pe['value'] * 100)} (n = {pe['sample_size']}).")
-            steps = list(rp.best.why) + [form] + rp.who + ([rp.target] if rp.target else []) + [rp.best.risk]
+            steps = ([rp.read] if rp.read else []) + list(rp.best.why) + [form] + rp.who + ([rp.target] if rp.target else []) + [rp.best.risk]
             strategy = RoundStrategy(summary_pt=rp.best.headline, site=rp.best.site, timing=rp.best.timing, steps_pt=[s for s in steps if s])
             if low:
                 strategy.steps_pt.append("Amostra baixa nesta jogada: trate-a como hipótese e ajuste na leitura do primeiro contato.")
@@ -319,10 +333,23 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
         if side_me == "defense" and views:
             use = sum(v.enemy_plants for v in views.values()) >= T.SITE_CONCEDED_MIN_PLANTS
             key = (lambda v: v.enemy_plants) if use else (lambda v: v.map_plants)
-            target_site = max(views.values(), key=key).site
+            ranked = sorted(views.values(), key=key, reverse=True)
+            target_site = ranked[0].site
+            # the enemy rotates too: after a lost attack on its favourite site it may try the runner-up
+            if (len(ranked) > 1 and ehist["site"] == target_site and ehist["lost"] and key(ranked[1]) >= 0.6 * key(ranked[0])):
+                target_site = ranked[1].site
         elif views:
-            target_site = max(views.values(), key=lambda v: v.vs_plants or v.map_plants * 0.0001).site
+            # attacking: the enemy defends the site we are going for
+            target_site = rp.best.site if rp is not None else max(views.values(), key=lambda v: v.vs_plants or v.map_plants * 0.0001).site
         move = _enemy_move(full, views, en, side_en, target_site, en_plant_ms, map_name, t_en, route_cache, tr)
+
+        try:
+            enemy_pts, enemy_snaps = route_cache.get((side_en, move.site), ([], 0)) if move.site else ([], 0)
+            assigned = [(pl, role) for pl, role, _ in roles]
+            map_site = (rp.best.site if (rp is not None and side_me == "attack") else move.site)
+            mp = build_map_plan(full, me, en, map_name, side_me, map_site, assigned, enemy_pts, enemy_snaps, plan_cache)
+        except Exception:  # drawing is a bonus: the plan never fails because of it
+            mp = None
 
         weak = _relevant_weak_points(team_ins, player_ins, side_me, t_en)
         cont = _contingency(tr, me, sm, n, pistol)
@@ -348,10 +375,19 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
         rounds.append(RoundPlan(
             number=n, half=half, side=side_me, round_type=t_me, base_scenario_result=result, win_probability=wp,
             projected_economy=ProjectedEconomy(team_credits=int(round(cr_me * 5)), enemy_credits=int(round(cr_en * 5)), reasoning_pt=reasoning),
-            buy=buy, strategy=strategy, enemy_weak_points=weak, enemy_probable_strategy=move, contingency=cont, insights=tips))
+            buy=buy, strategy=strategy, enemy_weak_points=weak, enemy_probable_strategy=move, contingency=cont, insights=tips,
+            map_plan=mp))
 
         # ---- advance the base scenario
         won_me = result == "win"
+        played_site = strategy.site if rp is not None else None
+        hist.repeat = hist.repeat + 1 if (hist.prev_side == side_me and hist.prev_site == played_site and played_site) else 1
+        hist.prev_side, hist.prev_site, hist.prev_won = side_me, played_site, won_me
+        hist.wins, hist.losses = (hist.wins + 1, 0) if won_me else (0, hist.losses + 1)
+        if side_en == "attack":
+            ehist["site"], ehist["lost"] = move.site, won_me  # the enemy lost its attack when we won the round
+        else:
+            ehist["site"], ehist["lost"] = None, False
         for st, won, typ, cr, spend, side in ((sm, won_me, t_me, cr_me, spend_me, side_me), (se, not won_me, t_en, cr_en, spend_en, side_en)):
             st.prev_streak = st.streak
             st.streak = 0 if won else st.streak + 1

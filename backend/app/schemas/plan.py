@@ -74,6 +74,44 @@ class ContingencyOutcome(Model):
     summary_pt: str
 
 
+class PlanRoute(Model):
+    """An arrow on the minimap: a typical path from real positions (additive, Stream D)."""
+
+    kind: Literal["attack", "retake", "enemy"]
+    label: str  # short text next to the arrow, e.g. "Fulano · entry"
+    role: str | None = None
+    agent: AgentRef | None = None
+    handle: str | None = None
+    points: list[Point]  # at least 2, minimap-normalized
+    t0_s: int | None = None  # seconds into the round at the first point
+    t1_s: int | None = None  # ... and at the last measured point
+    evidence: Stat  # snapshots behind the path; low_sample when thin
+
+
+class PlanZone(Model):
+    box: list[float]  # [x0, y0, x1, y1] in 0..1
+    kind: Literal["enemy_weak", "danger", "uncovered"]
+    label: str
+    evidence: Stat
+
+
+class PlanMarker(Model):
+    point: Point
+    kind: Literal["site", "hold"]
+    label: str
+    handle: str | None = None
+    agent: AgentRef | None = None
+
+
+class MapPlan(Model):
+    """What to draw on the round's minimap. Empty lists when the map has no minimap or the data is too thin."""
+
+    routes: list[PlanRoute] = []
+    zones: list[PlanZone] = []
+    markers: list[PlanMarker] = []
+    note_pt: str | None = None  # e.g. fallback to the whole dataset
+
+
 class RoundPlan(Model):
     number: int  # 1-based
     half: Literal[1, 2]
@@ -88,6 +126,7 @@ class RoundPlan(Model):
     enemy_probable_strategy: EnemyMove
     contingency: Contingency
     insights: list[Insight] = []
+    map_plan: MapPlan | None = None  # additive (Stream D): routes, zones and markers for the round's minimap
 
 
 class PlanResponse(Model):
