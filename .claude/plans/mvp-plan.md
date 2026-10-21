@@ -22,8 +22,9 @@
 - [ ] D: action plan backend (round-by-round, predicted round type per round, contingencies) + endpoint + ActionPlanPage
 - [x] Design: initial Figma frontend (6 screens + components), Action Plan redesigned to round-by-round (2026-10-20)
 - [ ] D: optional LLM polish (flagged)
-- [ ] E: app shell, filters, API client, design system styling
-- [ ] E: HomePage (search, KPIs, leaderboards, recent matches)
+- [x] E: app shell, filters, API client, design system styling (2026-10-21, Sidebar + TopBar from Figma, global filter context (tournament/phase, map, period) persisted in localStorage and applied by the hooks, global search dropdown, tokens/Badge/Meter/FilterChip/Panel/DataTable/StatCard/InsightCard restyled to the design)
+- [x] E: HomePage (search, KPIs, leaderboards, recent matches) (2026-10-21, matches Figma; plus simple list pages `/jogadores /times /mapas /partidas` for the sidebar, which have no Figma frame)
+- [x] All six screens rebuilt from Figma (2026-10-21): Player and Team verified on real data; Map, Match Report and Action Plan are built to the design on top of Stream C/D's fixture stubs and will fill in as those streams replace their routers (visual check: `frontend/scripts/shot.mjs`)
 - [ ] E: Playwright smoke tests + UX polish
 - [ ] F: pitch script, showcase entities, recording, submission
 - [ ] Catalog-usage confirmation from organizers (Discord ticket)
