@@ -137,18 +137,22 @@ def _post(client, url: str, headers: dict, body: dict):
     return resp
 
 
-def _complete(client, user: str) -> str:
-    """One Gemini generateContent call (JSON answer), trying the model chain until one answers."""
+def _complete(client, user: str, system: str = SYSTEM) -> str:
+    return _complete_from(client, user, system, gemini_models())[0]
+
+
+def _complete_from(client, user: str, system: str, models: list[str]) -> tuple[str, str]:
+    """One Gemini generateContent call (JSON answer): (text, model that answered), trying `models` in order until one answers."""
     key = api_key()
-    body = {"systemInstruction": {"parts": [{"text": SYSTEM}]},
+    body = {"systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": user}]}],
             "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": 32768, "temperature": 0.4}}  # thinking tokens count against it
     last: Exception | None = None
-    for model in gemini_models():  # next model when this one is overloaded or retired for the key
+    for model in models:  # next model when this one is overloaded or retired for the key
         try:
             resp = _post(client, GEMINI_URL.format(model=model), {"x-goog-api-key": key, "content-type": "application/json"}, body)
             parts = resp.json()["candidates"][0]["content"]["parts"]
-            return "".join(p.get("text", "") for p in parts if not p.get("thought"))
+            return "".join(p.get("text", "") for p in parts if not p.get("thought")), model
         except Exception as e:
             status = getattr(getattr(e, "response", None), "status_code", None)
             log.warning("Gemini model %s failed: %s", model, describe_error(e))
@@ -220,6 +224,41 @@ def _rewrite_half(client, plan: PlanResponse, rounds: list[RoundPlan], total_rou
         return data
 
     return _cached(key, call)
+
+
+def generate_json(system: str, user: str, client=None) -> tuple[dict | None, str | None, bool]:
+    """Generic structured call: (parsed JSON | None, error message | None, served from the disk cache). Never raises."""
+    key = hashlib.sha256(f"{','.join(gemini_models())}|{system}|{user}".encode()).hexdigest()
+    errors: list[str] = []
+    hit = (Path(CACHE_DIR) / f"{key}.json").exists()
+
+    def call():
+        models = gemini_models()
+        while models:  # a model that answers with malformed JSON is skipped like one that is overloaded
+            try:
+                text, used = _complete_from(client, user, system, models)
+            except Exception as e:
+                log.warning("LLM call failed: %s", describe_error(e))
+                errors.append(describe_error(e))
+                return None
+            data = _parse(text)
+            if data is not None:
+                return data
+            log.warning("Gemini model %s answered with malformed JSON", used)
+            errors.append("a resposta do modelo não veio em JSON")
+            models = models[models.index(used) + 1:]
+        return None
+
+    own = client is None
+    try:
+        client = client or httpx.Client(timeout=180)
+        data = _cached(key, call)
+    except Exception as e:
+        return None, describe_error(e), False
+    finally:
+        if own and client is not None:
+            client.close()
+    return data, (None if data else (errors[0] if errors else None)), hit and data is not None
 
 
 def _with_note(plan: PlanResponse, note: str) -> PlanResponse:

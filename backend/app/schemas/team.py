@@ -1,6 +1,8 @@
 """Team Profile: GET /api/teams and GET /api/teams/{name}."""
 from __future__ import annotations
 
+from typing import Literal
+
 from .common import (Insight, MapRef, MatchListItem, Model, PlayerRef, RoleName,
                      RoleScore, RoundType, Site, Stat, TeamRef)
 
@@ -74,3 +76,4 @@ class TeamProfile(Model):
     economy: TeamEconomy
     role_composition: list[RoleCount]
     insights: list[Insight]
+    insights_source: Literal["rules", "llm"] = "rules"  # additive (Stream D)

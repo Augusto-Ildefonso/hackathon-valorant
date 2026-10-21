@@ -50,6 +50,7 @@ class MapProfile(Model):
     sites: list[SiteStats]
     plants: list[PlantPoint]  # empty when has_minimap is false
     insights: list[Insight] = []
+    insights_source: Literal["rules", "llm"] = "rules"  # additive (Stream D)
 
 
 class HeatLayer(Model):

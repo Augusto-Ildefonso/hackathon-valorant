@@ -60,6 +60,7 @@ class MatchReport(Model):
     scoreboard: list[ScoreboardRow]
     insights_a: list[Insight]
     insights_b: list[Insight]
+    insights_source: Literal["rules", "llm"] = "rules"  # additive (Stream D)
 
 
 class ReplayPlayer(Model):

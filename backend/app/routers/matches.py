@@ -1,4 +1,6 @@
 """Match endpoints (detail + kills). The list endpoint lives in meta.py (Stream A). Owner: Stream C."""
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 
 from ..analytics.matches import match_exists, match_report
@@ -16,10 +18,10 @@ def _check(match_id: str):
 
 
 @router.get("/matches/{match_id}", response_model=MatchReport)
-def match(match_id: str):
+def match(match_id: str, insights: Literal["rules", "llm"] = "rules"):
     _check(match_id)
     report = match_report(get_store(), match_id)
-    report.insights_a, report.insights_b = engine.for_match(report)
+    report.insights_a, report.insights_b, report.insights_source = engine.match_insights(report, insights)
     return report
 
 

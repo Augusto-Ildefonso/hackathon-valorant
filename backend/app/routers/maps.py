@@ -29,10 +29,10 @@ def maps(tournament: str | None = None):
 
 
 @router.get("/maps/{name}", response_model=MapProfile)
-def map_profile_endpoint(name: str, tournament: str | None = None):
+def map_profile_endpoint(name: str, tournament: str | None = None, insights: Literal["rules", "llm"] = "rules"):
     canon, s = _store(tournament, name)
     profile = map_profile(s, canon)
-    profile.insights = engine.for_map(profile, s.where(map_name=canon))
+    profile.insights, profile.insights_source = engine.map_insights(profile, s.where(map_name=canon), insights)
     return profile
 
 

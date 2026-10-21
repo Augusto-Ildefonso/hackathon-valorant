@@ -37,6 +37,8 @@ Frontend types: `frontend/src/api/types.ts` mirrors the models (Stream E keeps t
 | POST `/api/plan` | body `PlanRequest` (`use_llm` optional) | `PlanResponse` (`text_source`, `notes_pt` additive) | D |
 | GET `/api/plan/capabilities` | | `PlanCapabilities` `{llm, model}` | D |
 
+Additive (Stream D): `GET /api/players/{id}`, `/api/teams/{name}`, `/api/maps/{name}` and `/api/matches/{id}` take `insights=rules|llm` (default `rules`) and return `insights_source` (`rules` | `llm`). With `llm` the model picks and words the insights from a fact packet and the answer is validated against it; when the LLM is off, fails or returns nothing the response is the rule-based one and says `rules`.
+
 ## Insight engine entry points (Python, not HTTP)
 `insights.engine.for_player(PlayerProfile) / for_team(TeamProfile) / for_match(MatchReport) / for_map(MapProfile)`; implemented by Stream D (`for_map` also accepts an optional `store`). Routers call them after building the stats so the engine never touches raw data.
 

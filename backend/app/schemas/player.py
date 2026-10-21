@@ -1,6 +1,8 @@
 """Player Profile: GET /api/players/{puuid}."""
 from __future__ import annotations
 
+from typing import Literal
+
 from .common import (AgentRef, Insight, MapRef, Model, PlayerRef, RoleScore,
                      RoundType, Stat, TeamRef, WeaponRef)
 
@@ -70,3 +72,4 @@ class PlayerProfile(Model):
     by_map: list[MapPerformance]
     agents: list[AgentPerformance]
     insights: list[Insight]  # strengths / weaknesses / tips, split by `kind`
+    insights_source: Literal["rules", "llm"] = "rules"  # additive (Stream D): who chose and worded the insights

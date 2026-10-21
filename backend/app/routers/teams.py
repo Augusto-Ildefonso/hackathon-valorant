@@ -1,4 +1,6 @@
 """Team endpoints. Owner: Stream B."""
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException
 
 from ..analytics.teams import team_exists, team_list, team_profile
@@ -15,7 +17,7 @@ def teams(tournament: str | None = None):
 
 
 @router.get("/teams/{name}", response_model=TeamProfile)
-def team(name: str, tournament: str | None = None, map: str | None = None):
+def team(name: str, tournament: str | None = None, map: str | None = None, insights: Literal["rules", "llm"] = "rules"):
     full = get_store()
     if not team_exists(full, name):
         raise HTTPException(404, f"Unknown team {name}")
@@ -23,5 +25,5 @@ def team(name: str, tournament: str | None = None, map: str | None = None):
     if not team_exists(store, name):
         raise HTTPException(404, "Team has no matches for these filters")
     profile = team_profile(store, name, full_store=full)
-    profile.insights = engine.for_team(profile)
+    profile.insights, profile.insights_source = engine.team_insights(profile, insights)
     return profile
