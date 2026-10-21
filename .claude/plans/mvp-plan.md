@@ -12,8 +12,8 @@
 - [x] A: catalog + coords (validated on minimaps) (2026-10-21, `data/catalog.py`, `data/coords.py`; plants fall inside the bombsites on Ascent/Lotus/Haven/Split, image in `docs/coords-check.png`, script `backend/scripts/check_coords.py`)
 - [x] A: metrics implementation (2026-10-21, `app.metrics`: events, players, rounds, objective; see SPEC.md "Where each metric lives"; buy-type thresholds calibrated)
 - [x] A: meta/search/leaderboards/matches endpoints (2026-10-21, real implementations in `routers/meta.py`, store preloaded at startup)
-- [ ] B: players analytics + roles + endpoint + PlayerPage
-- [ ] B: teams analytics + endpoint + TeamPage
+- [x] B: players analytics + roles + endpoint + PlayerPage (2026-10-21, `analytics/players.py`, `analytics/roles.py`, real `/api/players/{puuid}` with tournament/map filters + 404, `PlayerPage`; roles = percentile of behavioral signals vs the whole dataset, top-2 + confidence + signals; IGL deliberately not produced; sanity-checked: duelist mains score higher on entry)
+- [x] B: teams analytics + endpoint + TeamPage (2026-10-21, `analytics/teams.py`, real `/api/teams` and `/api/teams/{name}`, `TeamPage` with roster/roles, record, trend chart (SVG), per-map, economy, matches; insights wired to `engine.for_team`)
 - [ ] C: maps + heatmaps + blind-spot layers + endpoints
 - [ ] C: match report + kill replay + endpoints
 - [ ] C: MinimapCanvas + MapPage + MatchPage
@@ -38,6 +38,7 @@ What exists now: runnable backend + frontend skeletons, the frozen contract, fix
 - **Frontend:** Tailwind v4 pinned at 4.1.18 (4.0.0 crashes the Vite production build). Design tokens in `src/index.css` mirror the Figma variables. `MinimapCanvas` props are frozen (stub draws heat/points/lines/routes; C owns the body).
 - **Fixtures** are shape examples (made-up numbers on real team/map names). Regenerate with `make fixtures`; changing a shape is a contract PR.
 - **Stream A hand-off (2026-10-21):** the real Store and metrics are ready. Replace `build_mini_store` in your tests with the session fixture `full_store` (`tests/conftest.py`, cached load) or keep the mini store for fast unit tests; use `from app.deps import get_store` in routers and `store.where(...)` for the global filters. Metrics: `from app.metrics import ...` (SPEC.md lists them). Contract additions are additive only (`matches.tournament_code/series_no/winner_team`, `rounds.defender_color`, `round_player_stats.team_name`, `Store.skipped`, `Store.where/subset`). `team_name` is the display name derived from the filename slug (`ufg_gc_eagles` -> `UFG GC Eagles`); the same team spelled differently across tournaments is NOT merged.
+- **Stream B notes (2026-10-21):** `analytics.roles.role_model(full_store)` is cached per store and always relative to the whole dataset (filters do not change role percentiles). Spatial role signals (isolation, site presence) are snapshots at kill moments only. Weapon rows are per (weapon, buy type) with >= 5 rounds, top 20; `kd` = kills / deaths in rounds with that purchase. Player/team routers call `engine.for_player` / `for_team`, so D's rules appear automatically. Shared frontend additions by B: `lib/format.ts` (pt-BR labels, number/percent formatting) and `components/ui/Panel.tsx` (`Panel`, `StatValue`); E may restyle but keep props. Pages are not yet connected to the global filter context (E).
 - **Known data limits:** 3 observer-only puuids and 68 team names (the same club can appear as separate team names, e.g. `Azure Bears Black/Golden/Silver/White` are distinct teams on purpose). Armor IDs have no names (use loadout value to tell light vs heavy if needed).
 - **Not done in Phase 0 (by design):** real loader, filenames parser, catalog/coords, metrics code, Playwright, global filter context (E).
 

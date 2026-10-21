@@ -4,20 +4,21 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from app.deps import FIXTURES
+from app.deps import FIXTURES, get_store
 from app.main import app
 from app.schemas import ENDPOINTS
 
 client = TestClient(app)
+_STORE = get_store()  # routes backed by real data need real ids
 
 ROUTES = {
     "meta": ("get", "/api/meta"),
     "search": ("get", "/api/search?q=fa"),
     "leaderboards": ("get", "/api/leaderboards"),
     "matches": ("get", "/api/matches"),
-    "player": ("get", "/api/players/puuid-0001"),
+    "player": ("get", f"/api/players/{_STORE.match_players.puuid.iloc[0]}"),
     "teams": ("get", "/api/teams"),
-    "team": ("get", "/api/teams/Fatec%20PG"),
+    "team": ("get", f"/api/teams/{_STORE.matches.team_a.iloc[0]}"),
     "maps": ("get", "/api/maps"),
     "map": ("get", "/api/maps/Ascent"),
     "map_heatmap": ("get", "/api/maps/Ascent/heatmap?side=both"),
