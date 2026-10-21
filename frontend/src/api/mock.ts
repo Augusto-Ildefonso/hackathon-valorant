@@ -27,6 +27,7 @@ const routes: Array<[RegExp, unknown]> = [
   [/^\/api\/maps\/[^/]+\/heatmap$/, map_heatmap],
   [/^\/api\/maps\/[^/]+$/, map],
   [/^\/api\/plan$/, plan],
+  [/^\/api\/plan\/capabilities$/, { llm: false, model: null }],
 ];
 
 export function mockResponse(path: string): unknown {

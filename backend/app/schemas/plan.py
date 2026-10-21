@@ -13,6 +13,7 @@ class PlanRequest(Model):
     perspective: Literal["a", "b"] = "a"
     rounds_per_half: int = 12
     starting_side: Side = "attack"  # starting side of the PERSPECTIVE team
+    use_llm: bool = False  # additive (Stream D): ask the optional LLM narrator to rewrite the plan text
 
 
 class AgentRecommendation(Model):
@@ -100,6 +101,15 @@ class PlanResponse(Model):
     opponent: OpponentSummary
     rounds: list[RoundPlan]
     narrative_pt: str | None = None  # optional LLM polish; None when disabled
+    text_source: Literal["rules", "llm"] = "rules"  # additive (Stream D): who wrote the round texts
+    notes_pt: list[str] = []  # additive (Stream D): data caveats shown with the plan (fallbacks, small samples)
+
+
+class PlanCapabilities(Model):
+    """GET /api/plan/capabilities (additive, Stream D)."""
+
+    llm: bool  # True when the optional narrator is configured (env flag + API key)
+    model: str | None = None
 
 
 Contingency.model_rebuild()

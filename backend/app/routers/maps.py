@@ -32,7 +32,7 @@ def maps(tournament: str | None = None):
 def map_profile_endpoint(name: str, tournament: str | None = None):
     canon, s = _store(tournament, name)
     profile = map_profile(s, canon)
-    profile.insights = engine.for_map(profile)
+    profile.insights = engine.for_map(profile, s.where(map_name=canon))
     return profile
 
 

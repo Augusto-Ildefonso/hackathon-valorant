@@ -41,8 +41,9 @@ def test_route_returns_valid_body(name):
 
 
 def test_plan_route():
-    body = {"team_a": "Fatec PG", "team_b": "Panterão Gaming", "map": "Ascent", "perspective": "a",
-            "rounds_per_half": 12, "starting_side": "attack"}
+    m = _STORE.matches[_STORE.matches.map_name == "Ascent"].iloc[0]
+    body = {"team_a": m.team_a, "team_b": m.team_b, "map": "Ascent", "perspective": "a",
+            "rounds_per_half": 3, "starting_side": "attack"}
     res = client.post("/api/plan", json=body)
     assert res.status_code == 200, res.text
     ENDPOINTS["plan"].model_validate(res.json())

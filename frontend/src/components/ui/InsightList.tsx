@@ -17,6 +17,9 @@ const KIND: Record<InsightKind, { label: string; bar: string; text: string }> = 
   strategy: { label: "Estratégia", bar: "bg-violet", text: "text-violet" },
 };
 
+/** Evidence values already come in display units (percentages as 0-100); `unit` tells how to print them. */
+const shown = (v: number, unit?: string | null) => (unit === "%" ? `${num(v, 0)}%` : num(v));
+
 export function InsightCard({ insight }: { insight: Insight }) {
   const k = KIND[insight.kind];
   const ev = insight.evidence;
@@ -30,8 +33,8 @@ export function InsightCard({ insight }: { insight: Insight }) {
         </div>
         <p className="text-sm leading-5 text-fg">{insight.text_pt}</p>
         <p className="font-mono text-xs font-medium leading-5 text-fg-muted">
-          {ev.metric} {num(ev.value)}
-          {ev.baseline != null && ` · base ${num(ev.baseline)}`} · n = {ev.sample_size}
+          {ev.metric} {shown(ev.value, ev.unit)}
+          {ev.baseline != null && ` · base ${shown(ev.baseline, ev.unit)}`} · n = {ev.sample_size}
         </p>
       </div>
     </div>

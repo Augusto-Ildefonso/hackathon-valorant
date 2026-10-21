@@ -2,7 +2,7 @@
 // (layout from the design by Stream E). Data: POST /api/plan (stub returns a fixture until Stream D ships it).
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useMaps, useMeta, usePlan, useTeams } from "@/api/hooks";
+import { useMaps, useMeta, usePlan, usePlanCapabilities, useTeams } from "@/api/hooks";
 import type { PlanRequest, PlanResponse, RoundPlan, RoundType, Side } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
 import { AgentIcon, MapIcon, WeaponIcon } from "@/components/ui/AgentIcon";
@@ -17,6 +17,7 @@ const TYPE_TONE: Record<RoundType, Tone> = { pistol: "violet", eco: "amber", sem
 const TYPE_SHORT: Record<RoundType, string> = { pistol: "PISTOL", eco: "ECO", semi_eco: "SEMI", force: "FORCE", full_buy: "FULL" };
 const SIDE_PT: Record<Side, string> = { attack: "Ataque", defense: "Defesa" };
 const SIDE_SHORT: Record<Side, string> = { attack: "ATQ", defense: "DEF" };
+const TIMING_PT: Record<string, string> = { early: "cedo", default: "padrão", late: "tardio" };
 const label = "font-display text-xs font-semibold uppercase leading-4 tracking-[0.96px] text-fg-muted";
 const mono = "font-mono font-medium";
 
@@ -134,7 +135,7 @@ function RoundDetail({ plan, round, prev }: { plan: PlanResponse; round: RoundPl
                 <ul className="list-disc pl-4 text-sm text-fg-secondary">{round.strategy.steps_pt.map((s) => <li key={s}>{s}</li>)}</ul>
               )}
               <p className="font-mono text-xs text-fg-muted">
-                {round.strategy.site ? `site ${round.strategy.site}` : ""}{round.strategy.timing ? ` · ${round.strategy.timing}` : ""} · vitória estimada {pct(round.win_probability.value)} · n = {round.win_probability.sample_size}
+                {round.strategy.site ? `site ${round.strategy.site}` : ""}{round.strategy.timing ? ` · ${TIMING_PT[round.strategy.timing] ?? round.strategy.timing}` : ""} · vitória estimada {pct(round.win_probability.value)} · n = {round.win_probability.sample_size}
                 {round.win_probability.low_sample ? " ⚠" : ""}
               </p>
             </div>
@@ -169,6 +170,7 @@ export default function ActionPlanPage() {
   const { data: teams } = useTeams();
   const { data: maps } = useMaps();
   const plan = usePlan();
+  const caps = usePlanCapabilities();
   const names = useMemo(() => (teams?.items ?? []).map((t) => t.team.name), [teams]);
   const [a, setA] = useState(params.get("teamA") ?? "");
   const [b, setB] = useState("");
@@ -188,7 +190,7 @@ export default function ActionPlanPage() {
   const run = (p: "a" | "b" = persp, over?: Partial<PlanRequest>) => {
     if (!a || !b) return;
     plan.mutate({ team_a: a, team_b: b, map, perspective: p, rounds_per_half: rph, starting_side: start, ...over });
-    setSel(1);
+    setSel((s) => (over?.use_llm ? s : 1));  // rewriting the same plan keeps the selected round
   };
   useEffect(() => { if (a && b && !plan.data && !plan.isPending && !plan.isError) run(); }, [a, b]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -197,6 +199,7 @@ export default function ActionPlanPage() {
   const mapInfo = maps?.items.find((m) => m.map.name === map);
   const teamOpts: Array<[string, string]> = names.map((n) => [n, n]);
   const data = plan.data;
+  const writing = plan.isPending && Boolean((plan.variables as PlanRequest | undefined)?.use_llm);
   const rounds = data?.rounds ?? [];
   const round = rounds.find((r) => r.number === sel) ?? rounds[0];
   const forTeam = data ? (data.perspective === "a" ? data.team_a.name : data.team_b.name) : persp === "a" ? a : b;
@@ -226,9 +229,15 @@ export default function ActionPlanPage() {
           <button key={p} onClick={() => { setPersp(p); run(p); }} className={`rounded-sm border px-4 py-2 text-sm font-medium ${persp === p ? "border-accent bg-surface-accent text-fg" : "border-border bg-surface text-fg-secondary"}`}>{n || "—"}</button>
         ))}
         <span className="ml-auto text-[11px] text-fg-muted">
-          {info(a) && info(b) ? `Base de dados: ${info(a)!.matches} partidas do time · ${info(b)!.matches} do adversário${mapInfo ? ` · ${mapInfo.matches} no mapa` : ""} · gerado por regras com evidências` : "Gerado por regras com evidências"}
+          {info(a) && info(b) ? `Base de dados: ${info(a)!.matches} partidas do time · ${info(b)!.matches} do adversário${mapInfo ? ` · ${mapInfo.matches} no mapa` : ""} · ` : ""}
+          {data?.text_source === "llm" ? "texto reescrito por IA a partir dos fatos calculados" : "gerado por regras com evidências"}
         </span>
       </div>
+      {data?.notes_pt && data.notes_pt.length > 0 && (
+        <ul className="flex flex-col gap-1 text-[11px] leading-[14px] text-fg-muted">
+          {data.notes_pt.map((n) => <li key={n}>• {n}</li>)}
+        </ul>
+      )}
 
       {plan.isError && <p className="text-accent">Não foi possível gerar o plano: {String(plan.error)}</p>}
       {plan.isPending && !data && <p className="text-fg-muted">Gerando plano…</p>}
@@ -315,7 +324,14 @@ export default function ActionPlanPage() {
               <p className="text-xs leading-4 text-fg-muted">Reescreve o plano em linguagem natural usando apenas os fatos e números acima. O plano estruturado continua visível.</p>
               {data.narrative_pt && <p className="mt-3 whitespace-pre-line text-sm leading-5 text-fg-secondary">{data.narrative_pt}</p>}
             </div>
-            <button disabled title={data.narrative_pt ? "Narrativa já gerada" : "Narrativa desativada neste ambiente (a flag do LLM está desligada)"} className="rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-muted opacity-60">Gerar narrativa</button>
+            <button
+              onClick={() => run(data.perspective, { use_llm: true })}
+              disabled={!caps.data?.llm || plan.isPending || data.text_source === "llm"}
+              title={data.text_source === "llm" ? "Plano já reescrito" : caps.data?.llm ? "Reescrever o plano com IA, usando só os fatos acima" : "Narrativa desativada neste ambiente (defina VAVAGYM_LLM=1 e ANTHROPIC_API_KEY no servidor)"}
+              className={`rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] ${caps.data?.llm && data.text_source !== "llm" ? "text-fg-secondary hover:text-fg" : "text-fg-muted opacity-60"}`}
+            >
+              {writing ? "Escrevendo…" : "Gerar narrativa"}
+            </button>
             <button onClick={() => window.print()} className="rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-secondary hover:text-fg">Exportar PDF</button>
           </div>
         </>

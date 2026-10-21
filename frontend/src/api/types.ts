@@ -132,7 +132,9 @@ export interface KillsResponse { match_id: string; map: MapRef; has_minimap: boo
 // ---- plan ----
 export interface PlanRequest {
   team_a: string; team_b: string; map: string; perspective: "a" | "b"; rounds_per_half: number; starting_side: Side;
+  use_llm?: boolean;  // Stream D: ask the optional LLM narrator to rewrite the plan text
 }
+export interface PlanCapabilities { llm: boolean; model: string | null }
 export interface AgentRecommendation { agent: AgentRef; role: string | null; reason_pt: string; evidence: Stat }
 export interface OpponentSummary {
   team: TeamRef; matches_on_map: number; preferred_site: Site | null; avg_time_to_plant_ms: Stat;
@@ -152,4 +154,5 @@ export interface RoundPlan {
 export interface PlanResponse {
   team_a: TeamRef; team_b: TeamRef; perspective: "a" | "b"; map: MapRef; rounds_per_half: number;
   starting_side: Side; agents: AgentRecommendation[]; opponent: OpponentSummary; rounds: RoundPlan[]; narrative_pt: string | null;
+  text_source?: "rules" | "llm"; notes_pt?: string[];  // Stream D (default "rules" / [])
 }

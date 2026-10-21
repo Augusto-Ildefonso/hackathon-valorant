@@ -34,10 +34,11 @@ Frontend types: `frontend/src/api/types.ts` mirrors the models (Stream E keeps t
 | GET `/api/maps/{name}/heatmap` | `side=attack\|defense\|both, grid_size, tournament` | `HeatmapResponse` | C |
 | GET `/api/matches/{id}` | | `MatchReport` | C |
 | GET `/api/matches/{id}/kills` | `round, player, team` | `KillsResponse` | C |
-| POST `/api/plan` | body `PlanRequest` | `PlanResponse` | D |
+| POST `/api/plan` | body `PlanRequest` (`use_llm` optional) | `PlanResponse` (`text_source`, `notes_pt` additive) | D |
+| GET `/api/plan/capabilities` | | `PlanCapabilities` `{llm, model}` | D |
 
 ## Insight engine entry points (Python, not HTTP)
-`insights.engine.for_player(PlayerProfile) / for_team(TeamProfile) / for_match(MatchReport) / for_map(MapProfile)`; today they return `[]`. Routers call them after building the stats so the engine never touches raw data.
+`insights.engine.for_player(PlayerProfile) / for_team(TeamProfile) / for_match(MatchReport) / for_map(MapProfile)`; implemented by Stream D (`for_map` also accepts an optional `store`). Routers call them after building the stats so the engine never touches raw data.
 
 ## Stub behaviour
 Until a stream replaces its router, the endpoint returns the matching fixture, so every screen can be built against a live backend or the frontend mock layer (`VITE_USE_MOCKS=1`) with identical shapes.

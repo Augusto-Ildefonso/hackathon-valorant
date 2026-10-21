@@ -5,7 +5,7 @@ import { filterQuery, useFilters } from "@/lib/filters";
 import { api, type Query } from "./client";
 import type {
   HeatmapResponse, KillsResponse, LeaderboardsResponse, MapListResponse, MapProfile, MatchListResponse,
-  MatchReport, MetaResponse, PlanRequest, PlanResponse, PlayerProfile, SearchResponse, TeamListResponse, TeamProfile,
+  MatchReport, MetaResponse, PlanCapabilities, PlanRequest, PlanResponse, PlayerProfile, SearchResponse, TeamListResponse, TeamProfile,
 } from "./types";
 
 const useGet = <T,>(key: unknown[], path: string, query?: Query, enabled = true) =>
@@ -51,5 +51,6 @@ export const useHeatmap = (name: string, query?: Query) => {
 };
 export const useMatch = (id: string) => useGet<MatchReport>(["match", id], `/api/matches/${id}`);
 export const useMatchKills = (id: string, query?: Query) => useGet<KillsResponse>(["kills", id], `/api/matches/${id}/kills`, query);
+export const usePlanCapabilities = () => useGet<PlanCapabilities>(["plan-capabilities"], "/api/plan/capabilities");
 export const usePlan = () =>
   useMutation({ mutationFn: (body: PlanRequest) => api<PlanResponse>("/api/plan", { body }) });
