@@ -18,7 +18,9 @@
 - [ ] C: match report + kill replay + endpoints
 - [ ] C: MinimapCanvas + MapPage + MatchPage
 - [ ] D: insight engine + rules (player/team/match)
-- [ ] D: action plan backend + endpoint + ActionPlanPage
+- [ ] A: round-type transition, projected economy and round win probability metrics (needed by D)
+- [ ] D: action plan backend (round-by-round, predicted round type per round, contingencies) + endpoint + ActionPlanPage
+- [x] Design: initial Figma frontend (6 screens + components), Action Plan redesigned to round-by-round (2026-10-20)
 - [ ] D: optional LLM polish (flagged)
 - [ ] E: app shell, filters, API client, design system styling
 - [ ] E: HomePage (search, KPIs, leaderboards, recent matches)
@@ -80,7 +82,7 @@ contract/ fixtures + openapi.md         A
 - Team mapping: match filename score to `teams[].roundsWon` to map team name → Red/Blue; handle ties by player rosters; log unmapped matches rather than failing.
 - `catalog.py`: load `PublicContentCatalog.json`; agent/weapon name lookups with explicit "unknown" fallback and `inferred` flag; map codename → public name; asset URL helpers; mount `public_catalog/` as static `/assets`.
 - `coords.py`: game→minimap transform (swapped axes) normalized to 0..1; discard outliers; per-map `has_minimap`. Validate by plotting plant positions on 2-3 minimaps (saved check image in `docs/`).
-- `metrics/`: implement SPEC.md functions once (HS%, ADR, first kill/death, trade, buy type, clutch, side per round with halftime/overtime).
+- `metrics/`: implement SPEC.md functions once (HS%, ADR, first kill/death, trade, buy type, clutch, side per round with halftime/overtime, plus round-type transition probabilities, projected economy and round win probability used by the Action Plan).
 - `routers/meta.py`: `/api/meta` (KPIs, tournaments, maps, date range), `/api/search`, `/api/leaderboards`, `/api/matches` (list with filters). Home screen data.
 - Hand-off milestone: **Wed 21 12:00** real `Store` + metrics merged; B/C/D swap the mini test store for the real one with no code changes.
 
@@ -103,9 +105,9 @@ contract/ fixtures + openapi.md         A
 
 ### Stream D: Insight engine + Action Plan (backend + screen)
 - `insights/engine.py` + `rules_player.py`, `rules_team.py`, `rules_match.py`: declarative rules `condition(stats) → Insight` with threshold config in one `thresholds.py`; every insight carries evidence + sample size, `low_sample` flag below thresholds; texts in pt-BR from templates. Works from the **stats dicts** B/C return (schema frozen), so D never touches raw JSON and can develop against fixtures.
-- `action_plan.py`: given Team A, Team B, map, perspective: agent recommendations (team history on the map + opponent tendencies), per-round-type plan (pistol, eco, force, full buy; attack/defense): weapon recommendation, strategy, enemy weak points, probable enemy strategy (site preference, early timing, buy pattern, common positions). Reads team/map aggregates through the stats functions from B and C (via the frozen `schemas`), with fixtures until they land.
+- `action_plan.py`: given Team A, Team B, map, perspective, **rounds per half** (default 12) and **starting side**, builds a **round-by-round plan for the whole match** (see project-details §5.6). Steps: (1) agent recommendations (team history on the map + opponent tendencies) and opponent summary; (2) a **base-scenario simulation** that walks the rounds in order, assigns the side of each round, **predicts the round type** (pistol/eco/semi-eco/force/full buy) from the round-type transition model + projected economy, and picks the most probable result of each round from the round win probability per side/map/type; (3) for each round: buy recommendation per role, attack/defense strategy, enemy weak points, probable enemy strategy and move, and a **contingency** (what changes if the previous round is won vs lost). Every item carries evidence + `low_sample`. Reads team/map aggregates through the stats functions from B and C (via the frozen `schemas`), with fixtures until they land. The round-type transition and projected-economy functions live in `metrics/` (A) per SPEC.md; D only consumes them.
 - `llm.py` (optional, last): Claude API call that rewrites the structured plan as narrative; feature-flagged by env var, strictly given the structured facts, with a post-check that no number in the output is absent from the input; always falls back to the rules output.
-- Router `/api/plan` (POST), page `ActionPlanPage` (team A/B/map pickers, perspective toggle, per-round tabs, evidence badges).
+- Router `/api/plan` (POST; body: team A, team B, map, perspective, rounds_per_half, starting_side; response: agents, opponent summary and an ordered `rounds[]` each with `number`, `half`, `side`, `round_type`, `projected_economy`, `buy`, `strategy`, `enemy_weak_points`, `enemy_probable_strategy`, `contingency`, `insights[]`). Page `ActionPlanPage`: selector bar (team A/B, swap, map, rounds per half, starting side), perspective toggle, match timeline of round chips (side + predicted type), selected-round detail with route minimap, full plan table, evidence badges.
 - D owns `thresholds.py`; B/C do not edit it.
 
 ### Stream E: Frontend shell, design system and Home
@@ -154,5 +156,5 @@ contract/ fixtures + openapi.md         A
 - **Cross-check:** total kills/rounds/players from the Store equals the numbers in `data-report.md` (336 maps, 6,618 rounds, 46,753 kills, 413 players) when the full dataset is present.
 - **Frontend:** `tsc` + lint + Playwright smoke test visiting all 6 routes with mocks, then with the real backend (`make dev`), asserting no console errors and key elements visible.
 - **Visual check:** plant markers on minimap for Ascent/Lotus/Haven/Split; kill replay on one known match.
-- **End-to-end demo script (Stream F, run at each checkpoint):** Home search → Player → Team → Map (toggle blind-spot layers) → Match Report (open a kill replay) → Action Plan (Team A vs B + map, flip perspective).
+- **End-to-end demo script (Stream F, run at each checkpoint):** Home search → Player → Team → Map (toggle blind-spot layers) → Match Report (open a kill replay) → Action Plan (Team A vs B + map, flip perspective, step through the round-by-round plan and show a round whose type changes with the contingency).
 - **Rules compliance:** no external data sources; no Riot assets beyond the supplied catalog; LLM off by default and never invents numbers.

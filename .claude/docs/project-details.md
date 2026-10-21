@@ -104,15 +104,31 @@ Entry point for all audiences.
 - **Improvements for each team:** rule-based suggestions for both teams, with evidence from this match.
 
 ### 5.6 Action Plan (`/plano`)
-Impartial pre-match planner.
-- **Inputs:** pick **Team A**, **Team B** and a **map**. A toggle flips the perspective (plan for A against B, or for B against A).
+Impartial pre-match planner that produces a **round-by-round plan for the whole match** (not a plan per round *type*). Based on the map, the enemy team and both teams' previous matches, it recommends a detailed plan for **each round in order**, and it also **decides which type each round will be** (pistol, eco, semi-eco, force or full buy).
+
+**Inputs**
+- **Team A**, **Team B** and a **map**. A toggle flips the perspective (plan for A against B, or for B against A).
+- **Rounds per half** (default 12, so 24 regulation rounds; the user may shorten it, e.g. 5 attack + 5 defense = 10 rounds, for a quick scenario) and **starting side** (attack or defense). The side of each round follows from these two inputs and the halftime swap; overtime is out of the base plan.
+
+**Output, shown once at the top**
 - **Agents recommendation** for the perspective team on that map, based on team history, map meta in the dataset and opponent tendencies.
-- **Per round** (grouped by round type: pistol, eco, force, full buy; attack and defense):
-  - Weapons recommendation.
-  - Attack/Defense strategy (sites, timing, utility usage patterns that worked).
-  - Weak points of the enemy.
-  - Probable enemy strategy (site preference, early-round timing, buy pattern, positions seen in past rounds on the map).
+- **Summary of the opponent** on that map (preferred site, time to plant, eco tendency, win rates per side, pistol record).
+
+**Output, for each round** (ordered list, one entry per round, with the half and the side attack/defense):
+- **Predicted round type** (pistol / eco / semi-eco / force / full buy) with the **projected economy** (expected credits for the team and for the enemy) and the reasoning (e.g. "after 2 losses the team usually forces; the enemy will probably have a full buy").
+- **Buy recommendation:** weapons and armor per player/role (reusing weapon performance by buy type from the Player Profile).
+- **Strategy:** on attack, the target site, timing of the execute and utility usage that worked on this map; on defense, the setup (positions per site, rotations, retake plan).
+- **Weak points of the enemy** relevant to that round (e.g. "loses the mid early", "eco rounds convert only 22%").
+- **Probable enemy strategy** for that round (site preference, early-round timing, buy pattern, positions and routes seen in past rounds on the map).
+- **Contingency:** how the plan changes if the previous round is won vs lost (a different round type, buy and strategy), because the economy depends on the outcome. The plan is built on a **base scenario** (the most probable result of each round for the perspective team, from the round win probability of each side on that map) and each round states the alternative.
 - Every recommendation cites its evidence (numbers, sample size); low-sample recommendations are flagged.
+
+**Screen layout**
+1. Selector bar (Team A, swap, Team B, map, rounds per half, starting side, generate button) and the perspective toggle.
+2. Agents recommendation and opponent summary.
+3. **Match timeline:** all rounds in order, grouped by half, each chip showing the round number, the side (A/D) and the predicted round type; clicking a chip selects the round.
+4. **Selected round detail:** the full plan of that round (round type and economy, buy, strategy, enemy weak points, probable enemy strategy with a minimap of routes, contingency).
+5. **Full plan table:** one row per round (round, side, type, buy, plan summary, probable enemy move) for reading or exporting.
 - Optional LLM polish turns the structured plan into a coach-style narrative; the structured plan is always shown.
 
 ## 6. Derived metrics (shared definitions)
@@ -123,6 +139,9 @@ Keep one implementation per metric in the backend so all screens agree.
 - **Trade:** a kill on the killer within a short window (default 5 s, configurable) after a teammate's death.
 - **Buy type:** from `loadoutValue` / `spent` thresholds (eco / semi-eco / force / full buy), defined once in config.
 - **Attack/defense side per round:** from `winningTeamRole` and halftime swap (overtime handled).
+- **Round type transitions** (used by the Action Plan): empirical probability of the next round type for a team given the previous round type, the previous result and the loss streak (rounds 0 and 12 are always pistol). Falls back to the global dataset when a team has too few rounds, and flags low samples.
+- **Projected economy:** expected credits for the next round from the previous loadout value, the result (win/loss bonus, loss streak bonus) and what the team usually spends, estimated from `economy.loadoutValue`/`spent`/`remaining` in the data.
+- **Round win probability:** per team, map, side and round type, with sample size; used to pick the base scenario of the plan.
 - **Clutch:** round won by a player when last alive vs ≥ 1 enemy.
 - **Map coordinates → minimap pixels:** single utility using the catalog transform; discards out-of-bounds points.
 

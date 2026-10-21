@@ -21,7 +21,7 @@ The product is **impartial**: there is no fixed "our team". The user picks any p
 - Recommendations are rule-based and cite their evidence. An LLM may optionally polish the text but must never invent numbers, and the app must work without it.
 
 ## Screens
-Home (search, KPIs, leaderboards, recent matches) · Player Profile · Team Profile · Map Profile (heatmaps, blind spots, attack/defense) · Match Report (scoreboard, round timeline, kill replay map) · Action Plan (Team A vs Team B + map). Details in `project-details.md`.
+Home (search, KPIs, leaderboards, recent matches) · Player Profile · Team Profile · Map Profile (heatmaps, blind spots, attack/defense) · Match Report (scoreboard, round timeline, kill replay map) · Action Plan (Team A vs Team B + map → a round-by-round plan for the whole match, where each round gets a predicted round type, buy, strategy, enemy weak points and probable enemy move). Details in `project-details.md`.
 
 ## Hard constraints
 - Match data comes **only** from the supplied JSON files. No scraping, no external stats APIs, no data from other sources.
