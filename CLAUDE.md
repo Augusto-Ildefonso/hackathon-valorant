@@ -26,6 +26,12 @@ The product is **impartial**: there is no fixed "our team". The user picks any p
 ## Screens
 Home (search, KPIs, leaderboards, recent matches) · Player Profile · Team Profile · Map Profile (heatmaps, blind spots, attack/defense) · Match Report (scoreboard, round timeline, kill replay map) · Action Plan (Team A vs Team B + map → a round-by-round plan for the whole match, where each round gets a predicted round type, buy, strategy, enemy weak points and probable enemy move). Details in `project-details.md`.
 
+## Frontend design rule (mandatory)
+- **Every page and component in the frontend must be based on the Figma design**: file `nilg3f5kGOAgARvLbUf8ml` (https://www.figma.com/design/nilg3f5kGOAgARvLbUf8ml/Hackathon-Valorant), page "Frontend v0". Frames: Home `25:17`, Map Profile `26:80`, Player Profile `27:155`, Team Profile `29:254`, Match Report `31:360`, Action Plan `32:432`; shared components Sidebar `24:48`, Top Bar `24:75`, Stat Card `24:4`, Insight Card set `24:46`, Filter Chip set `23:91`, Badge set `23:75`.
+- **Before building or changing any page, read its frame** (Figma MCP: `get_screenshot`, `get_metadata`, `get_design_context`), reuse the design tokens (colors, fonts, spacing, radii) and the existing UI components in `frontend/src/components/ui/`, and compare a screenshot of the result (`node frontend/scripts/shot.mjs <route> out.png`, dev server running) with the frame before finishing.
+- **Only deviate when the design shows something the data/contract cannot provide** (omit it, never invent numbers) or when a screen has no frame (e.g. the sidebar list pages): keep the same visual language and say so in the plan. If a design change is needed, change the Figma first (or ask) and then the code.
+- Record deviations and new screens in `.claude/plans/mvp-plan.md` ("Screens follow Figma" note).
+
 ## Hard constraints
 - Match data comes **only** from the supplied JSON files. No scraping, no external stats APIs, no data from other sources.
 - Analysis and post-match/preparation use only; nothing that helps during a live match.
