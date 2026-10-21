@@ -18,6 +18,7 @@ const TYPE_TONE: Record<RoundType, Tone> = { pistol: "violet", eco: "amber", sem
 const TYPE_SHORT: Record<RoundType, string> = { pistol: "PISTOL", eco: "ECO", semi_eco: "SEMI", force: "FORCE", full_buy: "FULL" };
 const SIDE_PT: Record<Side, string> = { attack: "Ataque", defense: "Defesa" };
 const SIDE_SHORT: Record<Side, string> = { attack: "ATQ", defense: "DEF" };
+const ROUND_SECTION = "plano-round-detalhe";
 const TIMING_PT: Record<string, string> = { early: "cedo", default: "padrão", late: "tardio" };
 const label = "font-display text-xs font-semibold uppercase leading-4 tracking-[0.96px] text-fg-muted";
 const mono = "font-mono font-medium";
@@ -298,6 +299,11 @@ export default function ActionPlanPage() {
   const sub = (n: string) => { const t = info(n); return t ? `${t.matches} partidas · ${pct(t.win_rate.value)}` : undefined; };
   const mapInfo = maps?.items.find((m) => m.map.name === map);
   const teamOpts: Array<[string, string]> = names.map((n) => [n, n]);
+  /** Selects a round and brings its detail section into view (chips and table rows both use it). */
+  const goToRound = (n: number) => {
+    setSel(n);
+    requestAnimationFrame(() => document.getElementById(ROUND_SECTION)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
   const data = shown;
   const writing = plan.isPending && Boolean((plan.variables as PlanRequest | undefined)?.use_llm);
   const rounds = data?.rounds ?? [];
@@ -387,21 +393,23 @@ export default function ActionPlanPage() {
                   {h === 2 && ` · rounds ${half(2)[0].number}–${rounds[rounds.length - 1].number} (pistol no round ${half(2)[0].number})`}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {half(h).map((r) => <RoundChip key={r.number} r={r} selected={r.number === round.number} onClick={() => setSel(r.number)} />)}
+                  {half(h).map((r) => <RoundChip key={r.number} r={r} selected={r.number === round.number} onClick={() => goToRound(r.number)} />)}
                 </div>
               </div>
             ))}
             <p className="text-[11px] text-fg-muted">Ponto verde = vitória no cenário base · ponto vermelho = derrota. O tipo de cada round muda conforme o resultado: veja a contingência no detalhe do round.</p>
           </Panel>
 
-          <RoundDetail plan={data} round={round} prev={rounds.find((r) => r.number === round.number - 1)} />
+          <div id={ROUND_SECTION} className="scroll-mt-20">
+            <RoundDetail plan={data} round={round} prev={rounds.find((r) => r.number === round.number - 1)} />
+          </div>
           <RoundMapPanel plan={data} round={round} />
 
           <Panel title="Plano completo" subtitle="Um registro por round · base para leitura rápida e exportação">
             <DataTable
               rows={showAll ? rounds : rounds.slice(0, 8)}
               rowKey={(r) => String(r.number)}
-              onRowClick={(r) => { setSel(r.number); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onRowClick={(r) => goToRound(r.number)}
               columns={[
                 { key: "n", header: "Rd", width: 32, className: `${mono} text-fg-muted`, render: (r) => r.number },
                 { key: "s", header: "Lado", width: 50, className: `font-display text-xs font-semibold ${""}`, render: (r) => <span className={r.side === "attack" ? "text-accent" : "text-violet"}>{SIDE_SHORT[r.side]}</span> },

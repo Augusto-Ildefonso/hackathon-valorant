@@ -31,6 +31,7 @@
 - [x] E: app shell, filters, API client, design system styling (2026-10-21, Sidebar + TopBar from Figma, global filter context (tournament/phase, map, period) persisted in localStorage and applied by the hooks, global search dropdown, tokens/Badge/Meter/FilterChip/Panel/DataTable/StatCard/InsightCard restyled to the design)
 - [x] E: HomePage (search, KPIs, leaderboards, recent matches) (2026-10-21, matches Figma; plus simple list pages `/jogadores /times /mapas /partidas` for the sidebar, which have no Figma frame)
 - [x] All six screens rebuilt from Figma (2026-10-21): Player and Team verified on real data; Map, Match Report and Action Plan are built to the design on top of Stream C/D's fixture stubs and will fill in as those streams replace their routers (visual check: `frontend/scripts/shot.mjs`)
+- [x] UX fix (2026-10-21): clicking a round no longer jumps to the top. Action Plan chips and table rows now scroll to the round detail section (`#plano-round-detalhe`), Match timeline rounds scroll to the kill replay (`#partida-replay`); checked in a real browser with `frontend/scripts/test-round-click.mjs`
 - [ ] E: Playwright smoke tests + UX polish
 - [ ] F: pitch script, showcase entities, recording, submission
 - [ ] Catalog-usage confirmation from organizers (Discord ticket)

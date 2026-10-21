@@ -238,8 +238,17 @@ export default function MatchPage() {
         <Scoreboard r={r} side="b" />
       </div>
 
-      <Timeline r={r} selected={round} onSelect={setRound} />
-      <Replay r={r} round={round} setRound={setRound} />
+      <Timeline
+        r={r}
+        selected={round}
+        onSelect={(n) => {  // choosing a round in the timeline brings its kill replay into view
+          setRound(n);
+          requestAnimationFrame(() => document.getElementById("partida-replay")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+        }}
+      />
+      <div id="partida-replay" className="scroll-mt-20">
+        <Replay r={r} round={round} setRound={setRound} />
+      </div>
 
       <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && r.insights_source !== "llm"} source={r.insights_source} />
       <div className="flex items-start gap-4">
