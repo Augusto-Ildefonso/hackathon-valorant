@@ -2,7 +2,7 @@
 // Data comes from /api/maps/{name} and /api/maps/{name}/heatmap (stubs return fixtures until Stream C ships them).
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useHeatmap, useMap, useMeta } from "@/api/hooks";
+import { useHeatmap, useMap, useMaps, useMeta } from "@/api/hooks";
 import type { HeatLayer } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
 import { CatalogIcon } from "@/components/ui/AgentIcon";
@@ -24,6 +24,7 @@ export default function MapPage() {
   const { mapName = "" } = useParams();
   const navigate = useNavigate();
   const { data: meta } = useMeta();
+  const maps = useMaps();
   const { data: m, isLoading, error } = useMap(mapName);
   const [side, setSide] = useState<Side>("both");
   const [layers, setLayers] = useState<Set<Layer>>(new Set(["deaths", "danger", "uncovered", "plants"]));
@@ -34,7 +35,7 @@ export default function MapPage() {
   const gap = m ? Math.abs((m.defense_win_rate.value ?? 0) - (m.attack_win_rate.value ?? 0)) * 100 : 0;
   const layerOf = (k: "kills" | "deaths" | "danger" | "uncovered"): HeatLayer | null => (layers.has(k) ? heat?.[k] ?? null : null);
   const heatLayers = [
-    [layerOf("deaths"), "red", 0.45], [layerOf("kills"), "green", 0.45], [layerOf("danger"), "red", 0.8], [layerOf("uncovered"), "cyan", 0.6],
+    [layerOf("deaths"), "red", 0.6], [layerOf("kills"), "green", 0.55], [layerOf("danger"), "red", 0.8], [layerOf("uncovered"), "cyan", 0.6],
   ].flatMap(([layer, color, opacity]) => (layer ? [{ layer: layer as HeatLayer, color: color as "red", opacity: opacity as number }] : []));
 
   return (
@@ -44,7 +45,9 @@ export default function MapPage() {
         subtitle={m ? `${m.matches} partidas · ${int(m.rounds)} rounds analisados` : isLoading ? "Carregando…" : undefined}
       />
       <div className="flex flex-wrap gap-2">
-        {[...(meta?.maps ?? [])].sort((a, b) => Number(b.has_minimap) - Number(a.has_minimap) || a.name.localeCompare(b.name)).map((x) => (
+        {/* most played first (rounds from /api/maps), maps without a minimap last */}
+        {(maps.data ? maps.data.items.map((i) => i.map) : [...(meta?.maps ?? [])])
+          .sort((a, b) => Number(b.has_minimap) - Number(a.has_minimap)).map((x) => (
           <FilterChip key={x.codename} on={x.name === mapName} onClick={() => navigate(`/mapa/${x.name}`)} className={x.has_minimap ? "" : "text-fg-muted"}>
             {x.name}{x.has_minimap ? "" : " · sem minimapa"}
           </FilterChip>
@@ -69,6 +72,7 @@ export default function MapPage() {
                   map={m.map}
                   size={580}
                   heat={heatLayers}
+                  zoneLayer={layers.has("uncovered") ? heat?.uncovered : null}
                   points={layers.has("plants") ? m.plants.map((p) => ({ point: p.point, kind: "plant" as const, label: p.site })) : []}
                 />
                 {m.map.has_minimap && (

@@ -28,13 +28,41 @@ export interface MinimapProps {
   /** Routes (e.g. probable enemy path in the Action Plan). */
   routes?: Array<{ points: Point[]; color?: string }>;
   onPointClick?: (index: number) => void;
+  /** Optional (Stream C): draws dashed, labelled boxes ("DESCOBERTA n") around the strongest blobs of this layer. */
+  zoneLayer?: HeatLayer | null;
+}
+
+/** Connected blobs of cells above `threshold` -> bounding boxes in 0..1, strongest first. */
+export function findZones(layer: HeatLayer, threshold = 0.3, minCells = 5, max = 3) {
+  const g = layer.grid, n = g.length;
+  const seen = Array.from({ length: n }, () => new Array<boolean>(n).fill(false));
+  const zones: Array<{ x0: number; y0: number; x1: number; y1: number; weight: number }> = [];
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (seen[r][c] || g[r][c] < threshold) continue;
+      const stack = [[r, c]];
+      seen[r][c] = true;
+      let cells = 0, weight = 0, r0 = r, r1 = r, c0 = c, c1 = c;
+      while (stack.length) {
+        const [y, x] = stack.pop()!;
+        cells++; weight += g[y][x];
+        r0 = Math.min(r0, y); r1 = Math.max(r1, y); c0 = Math.min(c0, x); c1 = Math.max(c1, x);
+        for (const [dy, dx] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const ny = y + dy, nx = x + dx;
+          if (ny >= 0 && ny < n && nx >= 0 && nx < n && !seen[ny][nx] && g[ny][nx] >= threshold) { seen[ny][nx] = true; stack.push([ny, nx]); }
+        }
+      }
+      if (cells >= minCells) zones.push({ x0: c0 / n, y0: r0 / n, x1: (c1 + 1) / n, y1: (r1 + 1) / n, weight });
+    }
+  }
+  return zones.sort((a, b) => b.weight - a.weight).slice(0, max);
 }
 
 const TEAM_A = "#2ee6d0"; // Figma Match Report: team A cyan, team B amber
 const TEAM_B = "#ffb547";
 const HEAT_RGB = { red: "255,59,82", cyan: "46,230,208", amber: "255,181,71", green: "61,220,132", violet: "160,123,255" } as const;
 
-export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines = [], routes = [] }: MinimapProps) {
+export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines = [], routes = [], zoneLayer = null }: MinimapProps) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -42,15 +70,40 @@ export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines =
     if (!ctx) return;
     ctx.clearRect(0, 0, size, size);
     for (const { layer, color = "red", opacity = 0.7 } of heat) {
+      // draw the n x n grid into a tiny canvas, then scale it up smoothed and blurred (no visible blocks)
       const n = layer.grid.length;
-      const cell = size / n;
+      const off = document.createElement("canvas");
+      off.width = off.height = n;
+      const octx = off.getContext("2d")!;
       layer.grid.forEach((row, r) =>
         row.forEach((v, c) => {
           if (v <= 0) return;
-          ctx.fillStyle = `rgba(${HEAT_RGB[color]},${Math.min(1, v) * opacity})`;
-          ctx.fillRect(c * cell, r * cell, cell, cell);
+          octx.fillStyle = `rgba(${HEAT_RGB[color]},${Math.min(1, v) * opacity})`;
+          octx.fillRect(c, r, 1, 1);
         }),
       );
+      ctx.save();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.filter = `blur(${Math.max(2, size / 110)}px)`;
+      ctx.drawImage(off, 0, 0, size, size);
+      ctx.restore();
+    }
+    if (zoneLayer) {
+      findZones(zoneLayer).forEach((z, i) => {
+        const x = z.x0 * size, y = z.y0 * size, w = (z.x1 - z.x0) * size, h = (z.y1 - z.y0) * size;
+        ctx.strokeStyle = "#2ee6d0";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(x, y, w, h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#2ee6d0";
+        ctx.font = "600 10px 'Chakra Petch', sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(`DESCOBERTA ${i + 1}`, x + 6, y + 5);
+        ctx.lineWidth = 1;
+      });
     }
     for (const l of lines) {
       ctx.strokeStyle = l.color ?? (l.team === "b" ? TEAM_B : l.team === "a" ? TEAM_A : "#ff3b52");
@@ -125,7 +178,7 @@ export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines =
         ctx.fillText(p.label, x + 14, y + 4);
       }
     }
-  }, [heat, points, lines, routes, size]);
+  }, [heat, points, lines, routes, size, zoneLayer]);
 
   if (!map.has_minimap || !map.minimap_url) {
     return (

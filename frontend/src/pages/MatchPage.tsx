@@ -108,7 +108,7 @@ function roundSummary(r: MatchReport, round: RoundSummary, kills: KillEvent[]): 
   return {
     headline: `${win} venceu por ${RESULT_PT[round.result]}${round.plant_site ? `: plante no site ${round.plant_site}` : ""}${round.defused ? ", desarmado pela defesa" : ""}.`,
     detail: [
-      `${kills.length} abates`,
+      `${kills.filter((k) => k.killer.puuid !== k.victim.puuid).length} abates`, // spike deaths are not kills
       kills.length ? `${attackers - lostAttackers} de ${attackers} atacantes sobreviveram` : null,
       `economia: ${label(econ.team_a_type)} (${r.team_a.team.name}) contra ${label(econ.team_b_type)} (${r.team_b.team.name})`,
     ].filter(Boolean).join(" · "),

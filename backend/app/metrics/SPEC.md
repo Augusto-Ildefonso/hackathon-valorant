@@ -66,5 +66,13 @@ Implementation notes (verified on the real data)
 - **Round type transitions:** key = (previous type, previous result, loss streak capped at 3); team-specific when it has >= 30 matching rounds, otherwise global (`source` says which).
 - **Round win probability:** shrinkage `(wins + 10 * p_global) / (n + 10)`, `p_global` = dataset win rate for (side, round type[, enemy round type when >= 30 samples]).
 
+## Heatmaps and blind spots (implemented by Stream C in `analytics/heatmaps.py`)
+- **Events:** one per player-vs-player kill (teamkills excluded) on the map; killer position = the killer's own entry in `player_locations`, victim position = `victim_x/y`; sides from `round_player_stats.side`; positions outside the minimap are dropped (`coords`).
+- **kills / deaths:** `grid_size`^2 histogram (default 64), 3x3 box smoothing, normalized by the maximum; `max_count` is the raw maximum of one cell. `side=attack|defense` keeps the kills scored / deaths suffered on that side.
+- **danger (blind spot a):** `max(deaths - kills, 0)` over the 3x3 neighbourhood, only where the neighbourhood has >= `MIN_CELL_EVENTS` (5) events.
+- **uncovered (blind spot b):** a kill is *uncovered* when no living opponent was within 0.05 of the killer's minimap position nor had it inside a 90-degree view cone of length 0.35 (view direction `(sin t, -cos t)`). A cell counts only if it has >= 5 neighbouring kills and >= 40% of them are uncovered (dataset average ~24%); score = uncovered kills x share. The frontend turns the strongest blobs into the dashed "DESCOBERTA n" boxes.
+- **Plants:** one marker per site at the mean plant position. Maps without a catalog transform (Abyss, Summit) return `has_data=false` and no layers.
+- **Match report:** MVP = highest in-game score on the winning team. Replay: `headshot` is always null (only per-target hit counts exist); spike deaths appear as kills where killer == victim with `damage_type: bomb`.
+
 ## Testing
 Each metric has a pytest against hand-computed values from the mini store (3 real files); changing a threshold requires updating this table.
