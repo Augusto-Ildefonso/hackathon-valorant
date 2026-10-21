@@ -35,7 +35,7 @@ export default function MapPage() {
   const gap = m ? Math.abs((m.defense_win_rate.value ?? 0) - (m.attack_win_rate.value ?? 0)) * 100 : 0;
   const layerOf = (k: "kills" | "deaths" | "danger" | "uncovered"): HeatLayer | null => (layers.has(k) ? heat?.[k] ?? null : null);
   const heatLayers = [
-    [layerOf("deaths"), "red", 0.6], [layerOf("kills"), "green", 0.55], [layerOf("danger"), "red", 0.8], [layerOf("uncovered"), "cyan", 0.6],
+    [layerOf("deaths"), "red", 0.7], [layerOf("kills"), "green", 0.7], [layerOf("danger"), "red", 0.9], [layerOf("uncovered"), "cyan", 0.75],
   ].flatMap(([layer, color, opacity]) => (layer ? [{ layer: layer as HeatLayer, color: color as "red", opacity: opacity as number }] : []));
 
   return (

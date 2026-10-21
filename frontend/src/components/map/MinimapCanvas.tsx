@@ -72,20 +72,25 @@ export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines =
     for (const { layer, color = "red", opacity = 0.7 } of heat) {
       // draw the n x n grid into a tiny canvas, then scale it up smoothed and blurred (no visible blocks)
       const n = layer.grid.length;
+      // The max-normalized grid is dominated by a few hot cells; rescale to its 95th percentile and apply a gamma
+      // curve so medium-density areas are visible too.
+      const vals = layer.grid.flat().filter((v) => v > 0).sort((a, b) => a - b);
+      const p95 = vals.length ? vals[Math.floor(vals.length * 0.95)] || 1 : 1;
       const off = document.createElement("canvas");
       off.width = off.height = n;
       const octx = off.getContext("2d")!;
       layer.grid.forEach((row, r) =>
         row.forEach((v, c) => {
           if (v <= 0) return;
-          octx.fillStyle = `rgba(${HEAT_RGB[color]},${Math.min(1, v) * opacity})`;
+          const a = Math.pow(Math.min(1, v / p95), 0.8) * opacity;
+          octx.fillStyle = `rgba(${HEAT_RGB[color]},${a})`;
           octx.fillRect(c, r, 1, 1);
         }),
       );
       ctx.save();
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
-      ctx.filter = `blur(${Math.max(2, size / 110)}px)`;
+      ctx.filter = `blur(${Math.max(2, size / 150)}px)`;
       ctx.drawImage(off, 0, 0, size, size);
       ctx.restore();
     }
@@ -190,7 +195,14 @@ export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines =
   }
   return (
     <div className="relative border border-border bg-black" style={{ width: size, height: size }}>
-      <img src={map.minimap_url} alt={`Minimapa de ${map.name}`} width={size} height={size} className="absolute inset-0" />
+      <img
+        src={map.minimap_url}
+        alt={`Minimapa de ${map.name}`}
+        width={size}
+        height={size}
+        className="absolute inset-0"
+        style={heat.length ? { filter: "brightness(0.55)" } : undefined} /* dim the map so the heat stands out */
+      />
       <canvas ref={ref} width={size} height={size} className="absolute inset-0" />
     </div>
   );
