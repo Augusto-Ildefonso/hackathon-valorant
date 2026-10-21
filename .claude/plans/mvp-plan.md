@@ -34,7 +34,7 @@
 - [x] UX fix (2026-10-21): clicking a round no longer jumps to the top. Action Plan chips and table rows now scroll to the round detail section (`#plano-round-detalhe`), Match timeline rounds scroll to the kill replay (`#partida-replay`); checked in a real browser with `frontend/scripts/test-round-click.mjs`
 - [ ] E: Playwright smoke tests + UX polish
 - [ ] F: pitch script, showcase entities, recording, submission
-- [ ] Catalog-usage confirmation from organizers (Discord ticket)
+- [x] Catalog-usage confirmation from organizers (Discord ticket)
 
 ## Phase 0 outcome and decisions (2026-10-21; streams can start from here)
 What exists now: runnable backend + frontend skeletons, the frozen contract, fixtures, the `Store` schema with a mini store, metric specs and UI stubs. Every endpoint **already returns its fixture**, so each stream replaces its router body instead of creating routes.
