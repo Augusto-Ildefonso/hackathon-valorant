@@ -60,6 +60,11 @@ class PlayerLeaderRow(Model):
     matches: int
     rounds: int
     low_sample: bool = False
+    # the other columns shown next to the ranked metric (additive in Stream E)
+    kd: float | None = None
+    adr: float | None = None
+    hs_pct: float | None = None
+    first_kills: int | None = None
 
 
 class TeamLeaderRow(Model):
@@ -69,6 +74,8 @@ class TeamLeaderRow(Model):
     matches: int
     rounds: int
     low_sample: bool = False
+    wins: int | None = None
+    losses: int | None = None
 
 
 PlayerMetric = Literal["kd", "adr", "hs_pct", "first_kills"]

@@ -1,4 +1,4 @@
-// Owner: Stream E. Props are frozen; styling may change.
+// Figma "Title" block (Display H1 28/34 + body subtitle). Owner: Stream E. Props are frozen; styling may change.
 import type { ReactNode } from "react";
 
 export interface PageHeaderProps {
@@ -9,10 +9,10 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   return (
-    <header className="mb-6 flex items-end justify-between gap-4 border-b border-border pb-4">
-      <div>
-        <h1 className="font-display text-3xl font-semibold uppercase tracking-wide text-fg">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-fg-secondary">{subtitle}</p>}
+    <header className="flex items-end justify-between gap-4">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h1 className="font-display text-[28px] font-bold leading-[34px] text-fg">{title}</h1>
+        {subtitle && <p className="text-sm leading-5 text-fg-secondary">{subtitle}</p>}
       </div>
       {actions}
     </header>

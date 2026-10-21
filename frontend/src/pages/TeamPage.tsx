@@ -1,143 +1,171 @@
-// Team Profile (/time/:teamName). Owner: Stream B.
+// Team Profile (Figma "Screen / Team Profile", 29:254). Owner: Stream B (layout from the design by Stream E).
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTeam } from "@/api/hooks";
-import type { RoundType, TrendPoint } from "@/api/types";
+import type { RoleName, RoundType, TrendPoint } from "@/api/types";
+import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InsightList } from "@/components/ui/InsightList";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Panel, StatValue } from "@/components/ui/Panel";
+import { Meter } from "@/components/ui/Meter";
+import { Panel } from "@/components/ui/Panel";
 import { StatCard } from "@/components/ui/StatCard";
-import { ROLE_PT, ROUND_TYPE_PT, dateBR, pct, seconds } from "@/lib/format";
+import { ROLE_PT, ROUND_TYPE_PT, dateShort, int, num, pct } from "@/lib/format";
 
-/** Round difference per match, oldest to newest (green = won the map, red = lost). */
+const mono = "font-mono font-medium";
+const ROLE_TONE: Record<RoleName, Tone> = { entry: "red", support: "cyan", anchor: "violet", lurker: "amber", flex: "neutral", igl: "green" };
+const RT: RoundType[] = ["pistol", "eco", "semi_eco", "force", "full_buy"];
+
+/** "Rush Series Esquenta", "Rush Series Esquenta 2" -> "Rush Esquenta, Esquenta 2 e Inclusivo" */
+function tournamentsText(names: string[]): string {
+  const uniq = [...new Set(names.map((n) => n.replace("Series ", "")))].sort();
+  const first = uniq[0]?.split(" ")[0];
+  const parts = uniq.map((n, i) => (i > 0 && n.split(" ")[0] === first ? n.split(" ").slice(1).join(" ") : n));
+  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}` : parts[0] ?? "";
+}
+
+/** Round difference per match, oldest to newest (last 12): green = won the map, red = lost. */
 function TrendChart({ points }: { points: TrendPoint[] }) {
-  const w = 520, h = 140, mid = h / 2;
-  const max = Math.max(13, ...points.map((p) => Math.abs(p.round_diff)));
-  const bw = Math.max(4, Math.min(24, (w - 20) / Math.max(points.length, 1) - 2));
+  const pts = points.slice(-12);
+  const w = 518, h = 230, zero = 125, unit = 95 / 13, bw = 26, step = pts.length > 1 ? (w - bw - 12) / (pts.length - 1) : 0;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Diferença de rounds por partida">
-      <line x1="0" x2={w} y1={mid} y2={mid} stroke="var(--color-border-strong)" />
-      {points.map((p, i) => {
-        const bh = (Math.abs(p.round_diff) / max) * (mid - 6);
-        const x = 10 + i * ((w - 20) / Math.max(points.length, 1));
+      <line x1="0" x2={w} y1={zero} y2={zero} stroke="var(--color-border-strong)" />
+      {pts.map((p, i) => {
+        const x = 6 + i * step;
+        const bh = Math.max(Math.min(Math.abs(p.round_diff), 13) * unit, 2);
+        const up = p.round_diff >= 0;
         return (
-          <rect key={p.match_id} x={x} width={bw} y={p.round_diff >= 0 ? mid - bh : mid} height={Math.max(bh, 1)}
-            fill={p.round_diff > 0 ? "var(--color-green)" : "var(--color-accent)"}>
-            <title>{`${dateBR(p.date)}: ${p.round_diff > 0 ? "+" : ""}${p.round_diff} rounds`}</title>
-          </rect>
+          <g key={p.match_id}>
+            <rect x={x} width={bw} y={up ? zero - bh : zero} height={bh} fill={up ? "var(--color-green)" : "var(--color-accent)"}>
+              <title>{`${dateShort(p.date)} · ${p.map_name ?? ""}: ${p.round_diff > 0 ? "+" : ""}${p.round_diff} rounds`}</title>
+            </rect>
+            <text x={x + bw / 2} y={up ? zero - bh - 6 : zero + bh + 14} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fill={up ? "var(--color-green)" : "var(--color-accent)"}>
+              {p.round_diff > 0 ? "+" : ""}{p.round_diff}
+            </text>
+            <text x={x + bw / 2} y={220} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono)" fill="var(--color-fg-muted)">
+              {(p.map_name ?? "").slice(0, 3).toUpperCase()}
+            </text>
+          </g>
         );
       })}
     </svg>
   );
 }
 
-const RT_ORDER: RoundType[] = ["pistol", "eco", "semi_eco", "force", "full_buy"];
-
 export default function TeamPage() {
   const { teamName = "" } = useParams();
   const navigate = useNavigate();
-  const { data, isLoading, error } = useTeam(teamName);
+  const { data: t, isLoading, error } = useTeam(teamName);
 
   if (isLoading) return <p className="text-fg-muted">Carregando…</p>;
-  if (error || !data) return <EmptyState title="Time não encontrado" message={String(error ?? "")} />;
-  const { record, economy } = data;
+  if (error || !t) return <EmptyState title="Time não encontrado" message="Não há dados deste time para os filtros atuais." />;
+
+  const { record: r, economy: e } = t;
+  const initials = t.team.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
+  const roundsWon = Math.round((r.round_win_rate.value ?? 0) * r.round_win_rate.sample_size);
+  const pistolWon = Math.round((e.pistol_win_rate.value ?? 0) * e.pistol_win_rate.sample_size);
+  const site = Object.entries(e.plant_site_preference).sort((a, b) => (b[1].value ?? 0) - (a[1].value ?? 0))[0];
 
   return (
     <>
-      <PageHeader title={data.team.name} subtitle={`${record.matches} partidas · ${record.series} séries · ${record.wins}V ${record.losses}D`} />
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-          <StatCard label="Partidas" value={String(record.matches)} />
-          <StatCard label="Séries" value={String(record.series)} />
-          <StatCard label="Vitórias / Derrotas" value={`${record.wins} / ${record.losses}`} />
-          <StatCard label="Rounds vencidos" stat={record.round_win_rate} format={(v) => pct(v)} />
-          <StatCard label="Ataque" stat={record.attack_win_rate} format={(v) => pct(v)} />
-          <StatCard label="Defesa" stat={record.defense_win_rate} format={(v) => pct(v)} />
-        </div>
+      <p className="text-xs leading-4 text-fg-muted">
+        <Link to="/times" className="hover:text-fg">Times</Link> › {t.team.name}
+      </p>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Elenco">
-            <DataTable
-              rows={data.roster}
-              rowKey={(m) => m.player.puuid}
-              columns={[
-                { key: "p", header: "Jogador", render: (m) => <Link className="text-cyan hover:underline" to={`/jogador/${m.player.puuid}`}>{m.player.riot_id}</Link> },
-                { key: "n", header: "Partidas", align: "right", render: (m) => m.matches },
-                { key: "r", header: "Função", render: (m) => (m.top_role ? `${ROLE_PT[m.top_role.role]} (${pct(m.top_role.confidence)})` : "—") },
-              ]}
-            />
-            {data.role_composition.length > 0 && (
-              <p className="mt-3 text-sm text-fg-secondary">
-                Composição atual:{" "}
-                {data.role_composition.map((r) => `${r.count}× ${ROLE_PT[r.role]}`).join(" · ")}
-              </p>
-            )}
-          </Panel>
-          <Panel title="Tendência (diferença de rounds por partida)">
-            <TrendChart points={data.trend} />
-          </Panel>
+      <div className="flex items-center gap-5 rounded-md border border-border bg-surface px-6 py-5">
+        <div className="flex size-[72px] shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-display text-[32px] font-bold leading-10 text-accent">{initials}</div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h1 className="truncate font-display text-[32px] font-bold leading-10 text-fg">{t.team.name}</h1>
+          <div className="flex flex-wrap items-center gap-3 text-sm leading-5">
+            <Badge tone="green">{r.wins} V · {r.losses} D</Badge>
+            <span className="text-fg-secondary">{r.matches} partidas · {tournamentsText(t.matches.map((m) => m.tournament))}</span>
+          </div>
         </div>
+        <Link to={`/plano?teamA=${encodeURIComponent(t.team.name)}`} className="shrink-0 font-display text-xs font-semibold uppercase tracking-[0.96px] text-accent">
+          Comparar com outro time →
+        </Link>
+      </div>
 
-        <Panel title="Desempenho por mapa">
+      <div className="flex gap-4">
+        <StatCard label="Partidas" value={String(r.matches)} footnote={`${t.by_map.length} mapas diferentes`} />
+        <StatCard label="% Rounds vencidos" value={pct(r.round_win_rate.value)} lowSample={r.round_win_rate.low_sample} footnote={`${int(roundsWon)} de ${int(r.round_win_rate.sample_size)} rounds`} />
+        <StatCard label="Ataque" value={pct(r.attack_win_rate.value)} lowSample={r.attack_win_rate.low_sample} footnote="rounds como atacante" />
+        <StatCard label="Defesa" value={pct(r.defense_win_rate.value)} lowSample={r.defense_win_rate.low_sample} footnote="rounds como defensor" />
+        <StatCard label="Pistol rounds" value={pct(e.pistol_win_rate.value)} lowSample={e.pistol_win_rate.low_sample} footnote={`${pistolWon} de ${e.pistol_win_rate.sample_size} vencidos`} />
+        <StatCard label={site ? `Plante no site ${site[0]}` : "Plante"} value={site ? pct(site[1].value) : "—"} lowSample={site?.[1].low_sample} footnote="dos plantes realizados" />
+      </div>
+
+      <div className="flex items-start gap-4">
+        <Panel className="flex-1" title="Elenco" subtitle="Função comportamental de cada jogador">
           <DataTable
-            rows={data.by_map}
+            rows={t.roster.slice(0, 8)}
+            rowKey={(m) => m.player.puuid}
+            columns={[
+              { key: "p", header: "Jogador", width: 210, className: "font-semibold text-fg", render: (m) => <Link className="truncate hover:text-accent" to={`/jogador/${m.player.puuid}`}>{m.player.riot_id}</Link> },
+              { key: "f", header: "Função", width: 110, render: (m) => (m.top_role ? <Badge tone={ROLE_TONE[m.top_role.role]}>{ROLE_PT[m.top_role.role].split(" ")[0]}</Badge> : "—") },
+              { key: "m", header: "Mapas", width: 50, align: "right", className: mono, render: (m) => m.matches },
+              { key: "kd", header: "K/D", width: 50, align: "right", className: `${mono} text-green`, render: (m) => num(m.kd) },
+              { key: "adr", header: "ADR", width: 50, align: "right", className: mono, render: (m) => num(m.adr, 0) },
+            ]}
+          />
+        </Panel>
+        <Panel className="flex-1" title="Desempenho por partida" subtitle="Diferença de rounds (positivo = vitória)">
+          <TrendChart points={t.trend} />
+        </Panel>
+      </div>
+
+      <div className="flex items-start gap-4">
+        <Panel className="flex-[690]" title="Desempenho por mapa" subtitle="Rounds vencidos por lado">
+          <DataTable
+            rows={t.by_map}
             rowKey={(m) => m.map.codename}
             columns={[
-              { key: "m", header: "Mapa", render: (m) => <Link className="text-cyan hover:underline" to={`/mapa/${m.map.name}`}>{m.map.name}</Link> },
-              { key: "n", header: "Partidas", align: "right", render: (m) => m.matches },
-              { key: "w", header: "Vitórias", align: "right", render: (m) => <StatValue stat={m.win_rate} format={(v) => pct(v)} /> },
-              { key: "a", header: "Ataque", align: "right", render: (m) => <StatValue stat={m.attack_win_rate} format={(v) => pct(v)} /> },
-              { key: "d", header: "Defesa", align: "right", render: (m) => <StatValue stat={m.defense_win_rate} format={(v) => pct(v)} /> },
-            ]}
-          />
-        </Panel>
-
-        <Panel title="Economia e tendências">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <DataTable
-              rows={RT_ORDER}
-              rowKey={(t) => t}
-              columns={[
-                { key: "t", header: "Tipo de round", render: (t) => ROUND_TYPE_PT[t] },
-                { key: "w", header: "Vitórias", align: "right", render: (t) => <StatValue stat={economy.win_rate_by_round_type[t]} format={(v) => pct(v)} /> },
-              ]}
-            />
-            <ul className="space-y-1 text-sm text-fg-secondary">
-              <li>Pistol: <StatValue stat={economy.pistol_win_rate} format={(v) => pct(v)} /></li>
-              <li>Tempo até plantar: <StatValue stat={economy.avg_time_to_plant_ms} format={seconds} /></li>
-              <li>Vitória pós-plant: <StatValue stat={economy.post_plant_win_rate} format={(v) => pct(v)} /></li>
-              <li>Retomada de site (defesa): <StatValue stat={economy.retake_success_rate} format={(v) => pct(v)} /></li>
-              {Object.entries(economy.plant_site_preference).map(([site, st]) => (
-                <li key={site}>Plant no site {site}: <StatValue stat={st} format={(v) => pct(v)} /></li>
-              ))}
-            </ul>
-          </div>
-        </Panel>
-
-        <Panel title="Partidas">
-          <DataTable
-            rows={data.matches}
-            rowKey={(m) => m.match_id}
-            onRowClick={(m) => navigate(`/partida/${m.match_id}`)}
-            columns={[
-              { key: "d", header: "Data", render: (m) => dateBR(m.date) },
-              { key: "m", header: "Mapa", render: (m) => m.map.name },
-              { key: "o", header: "Confronto", render: (m) => `${m.team_a.team.name} ${m.team_a.score} x ${m.team_b.score} ${m.team_b.team.name}` },
-              { key: "t", header: "Torneio", render: (m) => m.tournament },
-              { key: "r", header: "Resultado", render: (m) => {
-                const mine = m.team_a.team.name === data.team.name ? "a" : "b";
-                return <span className={m.winner === mine ? "text-green" : "text-accent"}>{m.winner === mine ? "Vitória" : "Derrota"}</span>;
+              { key: "m", header: "Mapa", className: "font-semibold text-fg", render: (m) => <Link className="hover:text-accent" to={`/mapa/${m.map.name}`}>{m.map.name}</Link> },
+              { key: "vd", header: "V–D", width: 56, align: "right", className: mono, render: (m) => {
+                const w = Math.round((m.win_rate.value ?? 0) * m.matches);
+                return `${w}–${m.matches - w}`;
               } },
+              { key: "a", header: "Ataque", width: 150, render: (m) => <Meter width={106} color="bg-accent" value={m.attack_win_rate.value} label={pct(m.attack_win_rate.value)} /> },
+              { key: "d", header: "Defesa", width: 150, render: (m) => <Meter width={106} color="bg-violet" value={m.defense_win_rate.value} label={pct(m.defense_win_rate.value)} /> },
             ]}
           />
         </Panel>
+        <Panel className="flex-[430]" title="Economia" subtitle="Rounds por tipo de compra">
+          <DataTable
+            rows={RT}
+            rowKey={(x) => x}
+            columns={[
+              { key: "t", header: "Tipo", className: "font-semibold text-fg", render: (x) => ROUND_TYPE_PT[x] },
+              { key: "n", header: "Rounds", width: 60, align: "right", className: mono, render: (x) => e.win_rate_by_round_type[x].sample_size },
+              { key: "w", header: "Vitórias", width: 140, render: (x) => <Meter width={96} color="bg-amber" value={e.win_rate_by_round_type[x].value} label={pct(e.win_rate_by_round_type[x].value)} /> },
+            ]}
+          />
+        </Panel>
+      </div>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Panel title="Pontos fortes"><InsightList insights={data.insights} kinds={["strength"]} /></Panel>
-          <Panel title="Pontos fracos"><InsightList insights={data.insights} kinds={["weakness"]} /></Panel>
-          <Panel title="Sugestões de melhoria"><InsightList insights={data.insights} kinds={["tip", "strategy"]} /></Panel>
-        </div>
+      <Panel title="Todas as partidas" subtitle="Clique para abrir o relatório">
+        <DataTable
+          rows={t.matches}
+          rowKey={(m) => m.match_id}
+          onRowClick={(m) => navigate(`/partida/${m.match_id}`)}
+          columns={[
+            { key: "d", header: "Data", width: 90, className: `${mono} text-fg-muted`, render: (m) => dateShort(m.date) },
+            { key: "o", header: "Adversário", className: "font-semibold text-fg", render: (m) => (m.team_a.team.name === t.team.name ? m.team_b.team.name : m.team_a.team.name) },
+            { key: "m", header: "Mapa", width: 100, render: (m) => m.map.name },
+            { key: "s", header: "Placar", width: 90, align: "center", className: `${mono} text-fg`, render: (m) => (m.team_a.team.name === t.team.name ? `${m.team_a.score} × ${m.team_b.score}` : `${m.team_b.score} × ${m.team_a.score}`) },
+            { key: "r", header: "Resultado", width: 100, render: (m) => {
+              const win = m.winner === (m.team_a.team.name === t.team.name ? "a" : "b");
+              return <Badge tone={win ? "green" : "red"}>{win ? "Vitória" : "Derrota"}</Badge>;
+            } },
+            { key: "v", header: "", width: 120, align: "right", className: "text-accent", render: () => "Ver relatório →" },
+          ]}
+        />
+      </Panel>
+
+      <div className="grid grid-cols-3 gap-4">
+        <Panel title="Pontos fortes"><InsightList insights={t.insights} kinds={["strength"]} /></Panel>
+        <Panel title="Pontos fracos"><InsightList insights={t.insights} kinds={["weakness"]} /></Panel>
+        <Panel title="Sugestões de melhoria"><InsightList insights={t.insights} kinds={["tip", "strategy"]} /></Panel>
       </div>
     </>
   );

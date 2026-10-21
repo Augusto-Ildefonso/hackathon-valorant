@@ -30,6 +30,8 @@ def player_table(store: Store) -> pd.DataFrame:
     t = t.join(fk).join(fd)
     t[["first_kills", "first_deaths"]] = t[["first_kills", "first_deaths"]].fillna(0).astype(int)
     t["opening_win_pct"] = t.first_kills / (t.first_kills + t.first_deaths).where(lambda s: s > 0)
+    t = t.join(ke[ke.death_traded].groupby("victim").size().rename("traded_deaths"))
+    t["traded_deaths"] = t.traded_deaths.fillna(0).astype(int)
 
     c = clutch_events(store)
     t = t.join(c.groupby("puuid").size().rename("clutch_attempts")).join(c[c.won].groupby("puuid").size().rename("clutches"))

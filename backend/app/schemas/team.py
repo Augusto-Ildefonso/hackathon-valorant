@@ -21,6 +21,8 @@ class RosterMember(Model):
     player: PlayerRef
     matches: int
     top_role: RoleScore | None = None
+    kd: float | None = None  # in this team's matches (additive in Stream E)
+    adr: float | None = None
 
 
 class TeamRecord(Model):
@@ -37,6 +39,7 @@ class TrendPoint(Model):
     match_id: str
     date: str
     round_diff: int  # rounds won - rounds lost in that map
+    map_name: str | None = None  # public map name (additive in Stream E)
 
 
 class TeamMapPerformance(Model):

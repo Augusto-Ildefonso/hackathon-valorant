@@ -12,7 +12,8 @@ Frontend types: `frontend/src/api/types.ts` mirrors the models (Stream E keeps t
 - Unknown agent/weapon: `name: null` (UI shows "Agente/Arma desconhecido(a)"); `name_inferred: true` when a name was guessed.
 - Rounds are **1-based** in the API (`number`, `round`), 0-based in the Store.
 - Team routes use the team name as the path segment (URL-encoded). Map routes use the public name (`Lotus`, not `Jam`).
-- Global filters (optional query params wherever listed): `tournament` (id), `map` (public name), `date_from`, `date_to` (ISO dates).
+- Global filters (optional query params wherever listed): `tournament` (id), `map` (public name), `date_from`, `date_to` (ISO dates). `tournament` may carry a phase prefix after a slash: `UNIVAVA/Classificat` (qualifiers 1-4) or `UNIVAVA/Fase` (group stage); the frontend builds these from `/api/meta` `tournaments[].phases`.
+- Additive fields added while building the screens from Figma (Stream E): leaderboard rows carry `kd/adr/hs_pct/first_kills` (players) and `wins/losses` (teams); `PlayerStats` has `shots/first_kills/first_deaths/traded_deaths`; `PlayerProfile.roles` now lists **all five** roles sorted by score (the UI shows the top 2 as badges) and `weapons` also has aggregated rows (`buy_type: null`) per weapon; `RosterMember` has `kd/adr`; `TrendPoint` has `map_name`. Leaderboards rank players with >= 5 maps.
 - Errors: standard FastAPI `{"detail": "..."}` with 404 for unknown entities, 422 for bad params.
 - Static catalog images: `/assets/<Folder>/<id>.png` (served from `public_catalog/`); API payloads already carry full `icon_url`/`minimap_url`.
 

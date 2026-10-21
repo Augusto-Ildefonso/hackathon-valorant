@@ -37,7 +37,10 @@ class Store:
         """Global filters (tournament code or folder name, public map name, ISO dates, team name). No-op if all None."""
         m = self.matches
         if tournament:
-            m = m[(m.tournament_code == tournament) | (m.tournament == tournament)]
+            code, _, phase = tournament.partition("/")  # "UNIVAVA" or "UNIVAVA/Classificat" (phase folder prefix)
+            m = m[(m.tournament_code == code) | (m.tournament == code)]
+            if phase:
+                m = m[m.phase.fillna("").str.startswith(phase)]
         if map_name:
             m = m[m.map_name == map_name]
         if date_from:

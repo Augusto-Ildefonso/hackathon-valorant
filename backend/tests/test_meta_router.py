@@ -35,6 +35,21 @@ def test_leaderboards_sorted_and_respect_tournament(full_store):
     assert sub.players["adr"]
 
 
+def test_tournament_phase_filter(full_store):
+    total = lambda t: client.get("/api/matches", params={"tournament": t, "limit": 1}).json()["total"]  # noqa: E731
+    uni = total("UNIVAVA")
+    assert total("UNIVAVA/Classificat") + total("UNIVAVA/Fase") == uni
+    assert uni == (full_store.matches.tournament_code == "UNIVAVA").sum()
+
+
+def test_leaderboard_rows_carry_all_columns(full_store):
+    r = client.get("/api/leaderboards").json()
+    row = r["players"]["adr"][0]
+    assert row["matches"] >= 5 and all(row[k] is not None for k in ("kd", "adr", "first_kills"))
+    t = r["teams"]["win_rate"][0]
+    assert t["wins"] + t["losses"] == t["matches"]
+
+
 def test_matches_list_filters_and_paging(full_store):
     all_ = MatchListResponse.model_validate(client.get("/api/matches", params={"limit": 5}).json())
     assert all_.total == len(full_store.matches) and len(all_.items) == 5

@@ -36,4 +36,9 @@ export const pct = (v: number | null | undefined, digits = 0) => (v == null ? "â
 export const statPct = (s: Stat, digits = 0) => pct(s.value, digits);
 export const statNum = (s: Stat, digits = 2) => num(s.value, digits);
 export const seconds = (ms: number | null | undefined) => (ms == null ? "â€”" : `${nf(1).format(ms / 1000)} s`);
-export const dateBR = (iso: string) => iso.split("-").reverse().join("/");
+export const dateShort = (iso: string) => {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y.slice(2)}`;
+};
+export const int = (v: number) => new Intl.NumberFormat("pt-BR").format(v);
+export const dateBR =(iso: string) => iso.split("-").reverse().join("/");

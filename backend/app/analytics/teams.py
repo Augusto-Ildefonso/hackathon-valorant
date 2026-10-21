@@ -7,7 +7,7 @@ import pandas as pd
 
 from ..data.catalog import get_catalog
 from ..data.store import Store
-from ..metrics import make_stat, objective_summary, team_rounds, team_table
+from ..metrics import make_stat, objective_summary, player_table, team_rounds, team_table
 from ..metrics.objective import attack_rounds
 from ..metrics.rounds import ROUND_TYPES
 from ..schemas.common import PlayerRef, TeamRef
@@ -37,10 +37,12 @@ def _roster(store: Store, name: str, roles) -> tuple[list[RosterMember], list[Ro
     ids = latest.groupby("puuid").agg(matches=("match_id", "nunique"), riot_id=("riot_id", "first")).sort_values(
         "matches", ascending=False)
     members = []
+    stats = player_table(store)
     for puuid, r in ids.head(ROSTER_LIMIT).iterrows():
         top = roles.roles_for(puuid, top=1)
         members.append(RosterMember(player=PlayerRef(puuid=puuid, riot_id=r.riot_id), matches=int(r.matches),
-                                    top_role=top[0] if top else None))
+                                    top_role=top[0] if top else None, kd=float(stats.loc[puuid, "kd"]),
+                                    adr=float(stats.loc[puuid, "adr"])))
     last_match = latest.match_id.iloc[0]
     current = latest[latest.match_id == last_match].puuid
     counts = Counter(t[0].role for p in current if (t := roles.roles_for(p, top=1)))
@@ -55,8 +57,8 @@ def _matches_and_trend(store: Store, name: str):
     items = match_items(store, m)
     own = m.score_a.where(m.team_a == name, m.score_b)
     opp = m.score_b.where(m.team_a == name, m.score_a)
-    trend = [TrendPoint(match_id=i, date=d, round_diff=int(o - p))
-             for i, d, o, p in zip(m.match_id, m.date, own, opp)][::-1]  # oldest first
+    trend = [TrendPoint(match_id=i, date=d, round_diff=int(o - p), map_name=mp)
+             for i, d, o, p, mp in zip(m.match_id, m.date, own, opp, m.map_name)][::-1]  # oldest first
     return items, trend
 
 

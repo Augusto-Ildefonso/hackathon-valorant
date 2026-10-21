@@ -32,6 +32,40 @@
           "sample_size": 214
         }
       ]
+    },
+    {
+      "role": "flex",
+      "score": 0.54,
+      "confidence": 0.4,
+      "inferred": false,
+      "signals": [
+        {
+          "name": "agent_variety",
+          "value": 0.42,
+          "sample_size": 201
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "score": 0.31,
+      "confidence": 0.2,
+      "inferred": false,
+      "signals": []
+    },
+    {
+      "role": "lurker",
+      "score": 0.22,
+      "confidence": 0.2,
+      "inferred": false,
+      "signals": []
+    },
+    {
+      "role": "anchor",
+      "score": 0.12,
+      "confidence": 0.2,
+      "inferred": false,
+      "signals": []
     }
   ],
   "stats": {
@@ -76,9 +110,44 @@
       "k3": 6,
       "k4": 1,
       "k5": 0
-    }
+    },
+    "shots": 2870,
+    "first_kills": 61,
+    "first_deaths": 34,
+    "traded_deaths": 38
   },
   "weapons": [
+    {
+      "weapon": {
+        "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",
+        "name": "Vandal",
+        "name_inferred": false,
+        "icon_url": "/assets/Weapons/9C82E19D-4575-0200-1A81-3EACF00CF872.png"
+      },
+      "buy_type": null,
+      "rounds": 188,
+      "round_win_rate": {
+        "value": 0.58,
+        "sample_size": 188,
+        "low_sample": false
+      },
+      "kills": 231,
+      "kd": {
+        "value": 1.62,
+        "sample_size": 188,
+        "low_sample": false
+      },
+      "hs_pct": {
+        "value": 0.31,
+        "sample_size": 188,
+        "low_sample": false
+      },
+      "damage_per_round": {
+        "value": 165.0,
+        "sample_size": 188,
+        "low_sample": false
+      }
+    },
     {
       "weapon": {
         "id": "9C82E19D-4575-0200-1A81-3EACF00CF872",

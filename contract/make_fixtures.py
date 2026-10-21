@@ -94,13 +94,14 @@ fixtures["search"] = {
 
 fixtures["leaderboards"] = {
     "players": {
-        "kd": [{"rank": 1, "player": P1, "team": FATEC, "value": 1.52, "matches": 9, "rounds": 201}],
+        "kd": [{"rank": 1, "player": P1, "team": FATEC, "value": 1.52, "matches": 9, "rounds": 201,
+                "kd": 1.52, "adr": 168.0, "hs_pct": 0.29, "first_kills": 61}],
         "adr": [{"rank": 1, "player": P2, "team": PANTERAO, "value": 181.4, "matches": 11, "rounds": 240}],
         "hs_pct": [{"rank": 1, "player": P3, "team": PANTERAO, "value": 0.34, "matches": 4, "rounds": 88, "low_sample": True}],
         "first_kills": [{"rank": 1, "player": P1, "team": FATEC, "value": 61, "matches": 9, "rounds": 201}],
     },
     "teams": {
-        "win_rate": [{"rank": 1, "team": PANTERAO, "value": 0.71, "matches": 14, "rounds": 330}],
+        "win_rate": [{"rank": 1, "team": PANTERAO, "value": 0.71, "matches": 14, "rounds": 330, "wins": 10, "losses": 4}],
         "round_win_rate": [{"rank": 1, "team": PANTERAO, "value": 0.58, "matches": 14, "rounds": 330}],
     },
 }
@@ -108,15 +109,23 @@ fixtures["leaderboards"] = {
 fixtures["matches"] = {"items": [MATCH_ITEM], "total": 336}
 
 fixtures["player"] = {
-    "player": P1, "teams": [FATEC], "favorite_agent": JETT, "roles": [ROLE_ENTRY],
+    "player": P1, "teams": [FATEC], "favorite_agent": JETT,
+    "roles": [ROLE_ENTRY,
+              {"role": "flex", "score": 0.54, "confidence": 0.4, "inferred": False, "signals": [{"name": "agent_variety", "value": 0.42, "sample_size": 201}]},
+              {"role": "support", "score": 0.31, "confidence": 0.2, "inferred": False, "signals": []},
+              {"role": "lurker", "score": 0.22, "confidence": 0.2, "inferred": False, "signals": []},
+              {"role": "anchor", "score": 0.12, "confidence": 0.2, "inferred": False, "signals": []}],
     "stats": {
         "matches": 9, "rounds": 201, "kills": 168, "deaths": 110, "assists": 41,
         "kd": stat(1.53, 201), "adr": stat(158.2, 201), "hs_pct": stat(0.27, 201),
         "first_kill_rate": stat(0.30, 201), "first_death_rate": stat(0.17, 201),
         "opening_duel_win_pct": stat(0.64, 95), "clutches": 6,
         "multikills": {"k2": 21, "k3": 6, "k4": 1, "k5": 0},
+        "shots": 2870, "first_kills": 61, "first_deaths": 34, "traded_deaths": 38,
     },
-    "weapons": [{"weapon": VANDAL, "buy_type": "full_buy", "rounds": 96, "round_win_rate": stat(0.55, 96),
+    "weapons": [{"weapon": VANDAL, "buy_type": None, "rounds": 188, "round_win_rate": stat(0.58, 188),
+                 "kills": 231, "kd": stat(1.62, 188), "hs_pct": stat(0.31, 188), "damage_per_round": stat(165.0, 188)},
+                {"weapon": VANDAL, "buy_type": "full_buy", "rounds": 96, "round_win_rate": stat(0.55, 96),
                  "kills": 91, "kd": stat(1.6, 96), "hs_pct": stat(0.29, 96), "damage_per_round": stat(161.0, 96)}],
     "by_map": [{"map": ASCENT, "matches": 4, "kills": 77, "deaths": 52, "kd": stat(1.48, 4, True)}],
     "agents": [{"agent": JETT, "matches": 6, "kd": stat(1.6, 6), "adr": stat(163.0, 6), "win_rate": stat(0.5, 6)},

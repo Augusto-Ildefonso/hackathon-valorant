@@ -1,138 +1,192 @@
-// Player Profile (/jogador/:puuid). Owner: Stream B.
+// Player Profile (Figma "Screen / Player Profile", 27:155). Owner: Stream B (layout from the design by Stream E).
 import { Link, useParams } from "react-router-dom";
-import { usePlayer } from "@/api/hooks";
-import type { RoleScore } from "@/api/types";
-import { AgentIcon, WeaponIcon } from "@/components/ui/AgentIcon";
+import { useMeta, usePlayer } from "@/api/hooks";
+import type { PlayerProfile, RoleName, RoleScore } from "@/api/types";
+import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { InsightList } from "@/components/ui/InsightList";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Panel, StatValue } from "@/components/ui/Panel";
+import { Meter } from "@/components/ui/Meter";
+import { Panel } from "@/components/ui/Panel";
 import { StatCard } from "@/components/ui/StatCard";
-import { ROLE_PT, ROUND_TYPE_PT, SIGNAL_PT, num, pct, statNum } from "@/lib/format";
+import { useFilters } from "@/lib/filters";
+import { ROLE_PT, int, num, pct } from "@/lib/format";
+import { tournamentOptions } from "@/lib/tournaments";
 
-function RoleCard({ role }: { role: RoleScore }) {
-  return (
-    <div className="border border-border bg-surface-raised p-3">
-      <p className="font-display text-lg text-fg">
-        {ROLE_PT[role.role]}
-        {role.inferred && <span className="ml-2 text-xs text-amber">inferido</span>}
-      </p>
-      <p className="mt-1 font-mono text-sm text-fg-secondary">
-        pontuação {pct(role.score)} · confiança {pct(role.confidence)}
-      </p>
-      <ul className="mt-2 space-y-0.5 text-xs text-fg-muted">
-        {role.signals.map((s) => (
-          <li key={s.name}>
-            {SIGNAL_PT[s.name] ?? s.name}: <span className="font-mono text-fg-secondary">{num(s.value, 2)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+const mono = "font-mono font-medium";
+const ROLE_BAR: Record<RoleName, string> = {
+  entry: "bg-accent", flex: "bg-amber", support: "bg-cyan", lurker: "bg-violet", anchor: "bg-blue", igl: "bg-fg-muted",
+};
+const ROLE_TONE: Tone[] = ["red", "amber", "cyan"];
+
+/** Text that backs a role score, built only from the signals the API returns. */
+function roleEvidence(r: RoleScore, p: PlayerProfile): string {
+  const s = Object.fromEntries(r.signals.map((x) => [x.name, x.value]));
+  const parts: string[] = [];
+  if (r.role === "entry") {
+    if (s.first_duel_share != null) parts.push(`1º duelo em ${pct(s.first_duel_share)} dos rounds`);
+    if (s.early_kill_share != null) parts.push(`${pct(s.early_kill_share)} dos abates nos primeiros 30 s`);
+  } else if (r.role === "flex") {
+    parts.push(`${p.agents.length} agentes em ${p.stats.matches} mapas`);
+  } else if (r.role === "support") {
+    if (s.assists_per_round != null) parts.push(`${num(s.assists_per_round)} assist./round`);
+    if (s.casts_per_round != null) parts.push(`${num(s.casts_per_round, 1)} habilidades/round`);
+  } else if (r.role === "lurker") {
+    if (s.isolation != null) parts.push(`isolamento ${num(s.isolation)}× o do time`);
+    if (s.late_kill_share != null) parts.push(`${pct(s.late_kill_share)} dos abates após 60 s`);
+  } else if (r.role === "anchor") {
+    if (s.defense_site_presence != null) parts.push(`${pct(s.defense_site_presence)} das posições na defesa dentro de um site`);
+  }
+  return parts.join(" · ") || "sem sinais suficientes";
 }
 
 export default function PlayerPage() {
   const { puuid = "" } = useParams();
-  const { data, isLoading, error } = usePlayer(puuid);
+  const { data: p, isLoading, error } = usePlayer(puuid);
+  const { data: meta } = useMeta();
+  const { filters } = useFilters();
 
   if (isLoading) return <p className="text-fg-muted">Carregando…</p>;
-  if (error || !data) return <EmptyState title="Jogador não encontrado" message={String(error ?? "")} />;
-  const { stats } = data;
+  if (error || !p) return <EmptyState title="Jogador não encontrado" message="Não há dados deste jogador para os filtros atuais." />;
+
+  const { stats } = p;
+  const initials = p.player.riot_id.replace(/[^\p{L}\p{N}]/gu, "").slice(0, 2).toUpperCase() || "?";
+  const fav = p.agents[0];
+  const favShare = fav ? fav.matches / Math.max(stats.matches, 1) : 0;
+  const team = p.teams[0];
+  const weapons = p.weapons.filter((w) => w.buy_type == null);
+  const tName = tournamentOptions(meta).find((o) => o.value === (filters.tournament ?? ""))?.label;
+  const roles = [...p.roles, ...(p.roles.some((r) => r.role === "igl") ? [] : [{ role: "igl" as const, score: 0, confidence: 0, inferred: true, signals: [] }])];
+  const topMap = [...p.by_map].sort((a, b) => b.matches - a.matches)[0];
 
   return (
     <>
-      <PageHeader
-        title={data.player.riot_id}
-        subtitle={data.teams.map((t) => t.name).join(" · ") || undefined}
-        actions={data.favorite_agent && <AgentIcon agent={data.favorite_agent} size={48} showName />}
-      />
-      <div className="mb-3 flex flex-wrap gap-2 text-sm">
-        {data.teams.map((t) => (
-          <Link key={t.name} to={`/time/${encodeURIComponent(t.name)}`} className="border border-border px-2 py-1 text-cyan hover:bg-surface-raised">
-            {t.name}
-          </Link>
-        ))}
+      <p className="text-xs leading-4 text-fg-muted">
+        <Link to="/jogadores" className="hover:text-fg">Jogadores</Link> › {p.player.riot_id}
+      </p>
+
+      <div className="flex items-center gap-5 rounded-md border border-border bg-surface px-6 py-5">
+        <div className="flex size-[72px] shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-display text-[32px] font-bold leading-10 text-accent">{initials}</div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h1 className="truncate font-display text-[32px] font-bold leading-10 text-fg">{p.player.riot_id}</h1>
+          <div className="flex flex-wrap items-center gap-3 text-sm leading-5">
+            {team && <Link to={`/time/${encodeURIComponent(team.name)}`}><Badge tone="neutral">{team.name}</Badge></Link>}
+            {fav && <span className="text-fg-secondary">Agente favorito: {fav.agent.name ?? "Agente desconhecido"} ({pct(favShare)} das partidas)</span>}
+            <span className="text-fg-muted">{stats.matches} mapas · {int(stats.rounds)} rounds</span>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <span className="font-display text-xs font-semibold uppercase leading-4 tracking-[0.96px] text-fg-muted">Função no time</span>
+          <div className="flex gap-2">
+            {p.roles.slice(0, 2).map((r, i) => <Badge key={r.role} tone={ROLE_TONE[i]}>{ROLE_PT[r.role]} · {pct(r.score)}</Badge>)}
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <Panel title="Funções (comportamento)">
-          {data.roles.length ? (
-            <div className="grid gap-3 md:grid-cols-2">{data.roles.map((r) => <RoleCard key={r.role} role={r} />)}</div>
-          ) : (
-            <p className="text-sm text-fg-muted">Sem dados suficientes.</p>
-          )}
-          <p className="mt-2 text-xs text-fg-muted">
-            Calculada pelo comportamento em jogo (duelos de abertura, distância do time, assistências, presença no site), nunca só pelo agente.
-          </p>
+      <div className="flex gap-4">
+        <StatCard label="K/D" value={num(stats.kd.value)} lowSample={stats.kd.low_sample} footnote={`${int(stats.kills)} abates · ${int(stats.deaths)} mortes`} />
+        <StatCard label="% Headshot" value={pct(stats.hs_pct.value)} footnote={`de ${int(stats.shots)} acertos`} />
+        <StatCard label="ADR" value={num(stats.adr.value, 0)} footnote="dano médio por round" />
+        <StatCard label="Abertura de round" value={pct(stats.opening_duel_win_pct.value)} footnote="duelos iniciais vencidos" />
+        <StatCard label="Rounds jogados" value={int(stats.rounds)} footnote={`em ${stats.matches} mapas`} />
+        <StatCard label="Assistências" value={num(stats.assists / Math.max(stats.rounds, 1))} footnote="por round" />
+      </div>
+
+      <div className="flex items-stretch gap-4">
+        <Panel className="flex-1" title="Classificação por função" subtitle="Heurísticas comportamentais calculadas a partir dos dados">
+          <DataTable
+            rows={roles}
+            rowKey={(r) => r.role}
+            columns={[
+              { key: "f", header: "Função", width: 130, className: "font-semibold text-fg", render: (r) => ROLE_PT[r.role] },
+              { key: "s", header: "Pontuação", width: 190, render: (r) => <Meter width={146} value={r.score} color={ROLE_BAR[r.role]} label={pct(r.role === "igl" ? 0 : r.score)} /> },
+              { key: "e", header: "Sinais que sustentam", render: (r) => (r.role === "igl" ? "não inferido com confiança (dados insuficientes)" : roleEvidence(r, p)) },
+            ]}
+          />
+          <div className="rounded-sm border border-border bg-surface-raised p-4">
+            <p className="font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-muted">Como calculamos</p>
+            <p className="mt-2 text-sm leading-5 text-fg-secondary">
+              A função é inferida pelo comportamento em rounds reais: primeiro duelo, tempo de entrada, distância ao time, assistências, uso de habilidades e presença em sites na defesa. Não depende apenas do agente escolhido.
+            </p>
+            <p className="mt-2 text-xs leading-4 text-fg-muted">IGL não é identificável com os dados disponíveis e só aparece quando há evidência suficiente.</p>
+          </div>
         </Panel>
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-6">
-          <StatCard label="Partidas" value={String(stats.matches)} />
-          <StatCard label="Rounds" value={String(stats.rounds)} />
-          <StatCard label="K/D" stat={stats.kd} format={(v) => num(v)} />
-          <StatCard label="ADR" stat={stats.adr} format={(v) => num(v, 1)} />
-          <StatCard label="HS%" stat={stats.hs_pct} format={(v) => pct(v)} />
-          <StatCard label="Abertura (vitória)" stat={stats.opening_duel_win_pct} format={(v) => pct(v)} />
-          <StatCard label="First kill / round" stat={stats.first_kill_rate} format={(v) => pct(v, 1)} />
-          <StatCard label="First death / round" stat={stats.first_death_rate} format={(v) => pct(v, 1)} />
-          <StatCard label="Kills / Mortes / Assist." value={`${stats.kills} / ${stats.deaths} / ${stats.assists}`} />
-          <StatCard label="Clutches vencidos" value={String(stats.clutches)} />
-          <StatCard label="Multi-kills" value={`${stats.multikills.k2}×2K ${stats.multikills.k3}×3K ${stats.multikills.k4}×4K ${stats.multikills.k5}×5K`} />
+        <div className="flex w-[330px] shrink-0 flex-col gap-4">
+          <Panel title="Abertura de rounds" subtitle="Primeiro duelo de cada round">
+            <div className="flex items-end gap-2">
+              <span className="font-display text-[56px] font-bold leading-[56px] text-green">{pct(stats.opening_duel_win_pct.value)}</span>
+              <span className="pb-1 text-xs text-fg-muted">de vitórias na abertura</span>
+            </div>
+            <div className="flex flex-col">
+              {[
+                ["Primeiros abates", stats.first_kills],
+                ["Primeiras mortes", stats.first_deaths],
+                ["Trocas recebidas", stats.traded_deaths],
+                ["Clutches (1vX)", stats.clutches],
+              ].map(([l, v]) => (
+                <div key={l} className="flex justify-between border-b border-border py-3 text-sm">
+                  <span className="text-fg-secondary">{l}</span>
+                  <span className={`${mono} text-fg`}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </Panel>
+          <Panel className="flex-1" title="Agentes jogados" subtitle={fav ? `Favorito: ${fav.agent.name ?? "Agente desconhecido"}` : undefined}>
+            <DataTable
+              rows={p.agents.slice(0, 4)}
+              rowKey={(a) => a.agent.id}
+              columns={[
+                { key: "a", header: "Agente", width: 106, className: "font-semibold text-fg", render: (a) => a.agent.name ?? "Agente desconhecido" },
+                { key: "m", header: "Partidas", render: (a) => <Meter width={126} value={a.matches / Math.max(stats.matches, 1)} label={pct(a.matches / Math.max(stats.matches, 1))} /> },
+              ]}
+            />
+            <p className="text-[11px] leading-[14px] text-fg-muted">
+              K/D por agente: {p.agents.slice(0, 4).map((a) => `${a.agent.name ?? "Desconhecido"} ${num(a.kd.value)}`).join(" · ")}
+            </p>
+          </Panel>
         </div>
+      </div>
 
-        <Panel title="Desempenho por arma comprada">
+      <div className="flex items-start gap-4">
+        <Panel className="flex-[690]" title="Desempenho por arma comprada" subtitle="Rounds em que a arma foi comprada (eco, force e full buy)">
           <DataTable
-            rows={data.weapons}
-            rowKey={(w) => `${w.weapon.id}-${w.buy_type}`}
+            rows={weapons}
+            rowKey={(w) => w.weapon.id}
             emptyText="Poucos rounds por arma para exibir."
             columns={[
-              { key: "w", header: "Arma", render: (w) => <WeaponIcon weapon={w.weapon} size={22} showName /> },
-              { key: "b", header: "Compra", render: (w) => (w.buy_type ? ROUND_TYPE_PT[w.buy_type] : "Todas") },
-              { key: "r", header: "Rounds", align: "right", render: (w) => w.rounds },
-              { key: "v", header: "Vitórias", align: "right", render: (w) => <StatValue stat={w.round_win_rate} format={(v) => pct(v)} /> },
-              { key: "k", header: "Kills", align: "right", render: (w) => w.kills },
-              { key: "kd", header: "K/D", align: "right", render: (w) => statNum(w.kd) },
-              { key: "hs", header: "HS%", align: "right", render: (w) => <StatValue stat={w.hs_pct} format={(v) => pct(v)} /> },
-              { key: "d", header: "Dano/round", align: "right", render: (w) => statNum(w.damage_per_round, 0) },
+              { key: "w", header: "Arma", className: "font-semibold text-fg", render: (w) => w.weapon.name ?? "Arma desconhecida" },
+              { key: "r", header: "Rounds", width: 64, align: "right", className: mono, render: (w) => w.rounds },
+              { key: "v", header: "Vitórias", width: 90, render: (w) => <Meter width={46} color="bg-green" value={w.round_win_rate.value} label={pct(w.round_win_rate.value)} /> },
+              { key: "k", header: "Abates", width: 64, align: "right", className: mono, render: (w) => w.kills },
+              { key: "kd", header: "K/D", width: 56, align: "right", className: mono, render: (w) => num(w.kd.value) },
+              { key: "h", header: "HS%", width: 56, align: "right", className: mono, render: (w) => pct(w.hs_pct.value) },
             ]}
           />
         </Panel>
+        <Panel className="flex-[430]" title="Abates e mortes por mapa" subtitle={tName && tName !== "Todos" ? tName : "Todos os torneios"}>
+          <DataTable
+            rows={p.by_map}
+            rowKey={(m) => m.map.codename}
+            columns={[
+              { key: "m", header: "Mapa", className: "font-semibold text-fg", render: (m) => <Link className="hover:text-accent" to={`/mapa/${m.map.name}`}>{m.map.name}</Link> },
+              { key: "k", header: "Abates", width: 60, align: "right", className: `${mono} text-green`, render: (m) => m.kills },
+              { key: "d", header: "Mortes", width: 60, align: "right", className: `${mono} text-accent`, render: (m) => m.deaths },
+              { key: "kd", header: "K/D", width: 56, align: "right", className: mono, render: (m) => num(m.kd.value) },
+            ]}
+          />
+          {topMap && (
+            <Link to={`/mapa/${topMap.map.name}`} className="font-display text-xs font-semibold uppercase tracking-[0.96px] text-accent">
+              Ver abates e mortes no mapa →
+            </Link>
+          )}
+        </Panel>
+      </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Kills e mortes por mapa">
-            <DataTable
-              rows={data.by_map}
-              rowKey={(m) => m.map.codename}
-              columns={[
-                { key: "m", header: "Mapa", render: (m) => <Link className="text-cyan hover:underline" to={`/mapa/${m.map.name}`}>{m.map.name}</Link> },
-                { key: "n", header: "Partidas", align: "right", render: (m) => m.matches },
-                { key: "k", header: "Kills", align: "right", render: (m) => m.kills },
-                { key: "d", header: "Mortes", align: "right", render: (m) => m.deaths },
-                { key: "kd", header: "K/D", align: "right", render: (m) => <StatValue stat={m.kd} format={(v) => num(v)} /> },
-              ]}
-            />
-          </Panel>
-          <Panel title="Agentes jogados">
-            <DataTable
-              rows={data.agents}
-              rowKey={(a) => a.agent.id}
-              columns={[
-                { key: "a", header: "Agente", render: (a) => <AgentIcon agent={a.agent} size={24} showName /> },
-                { key: "n", header: "Partidas", align: "right", render: (a) => a.matches },
-                { key: "kd", header: "K/D", align: "right", render: (a) => num(a.kd.value) },
-                { key: "adr", header: "ADR", align: "right", render: (a) => num(a.adr.value, 0) },
-                { key: "w", header: "Vitórias", align: "right", render: (a) => <StatValue stat={a.win_rate} format={(v) => pct(v)} /> },
-              ]}
-            />
-          </Panel>
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Panel title="Pontos fortes"><InsightList insights={data.insights} kinds={["strength"]} /></Panel>
-          <Panel title="Pontos fracos"><InsightList insights={data.insights} kinds={["weakness"]} /></Panel>
-          <Panel title="Recomendações de treino"><InsightList insights={data.insights} kinds={["tip"]} /></Panel>
-        </div>
+      <div className="grid grid-cols-3 gap-4">
+        <Panel title="Pontos fortes"><InsightList insights={p.insights} kinds={["strength"]} /></Panel>
+        <Panel title="Pontos fracos"><InsightList insights={p.insights} kinds={["weakness"]} /></Panel>
+        <Panel title="Recomendações de treino"><InsightList insights={p.insights} kinds={["tip"]} /></Panel>
       </div>
     </>
   );

@@ -1,90 +1,65 @@
-// Interim Home: KPIs, search and leaderboards so every profile is reachable. Owner: Stream E (will replace/restyle).
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useLeaderboards, useMeta, useSearch } from "@/api/hooks";
+// Home / Visão Geral (Figma "Screen / Home", 25:17). Owner: Stream E.
+import { Link, useNavigate } from "react-router-dom";
+import { useMaps, useMatches, useMeta } from "@/api/hooks";
+import { MatchesTable } from "@/components/home/MatchesTable";
+import { TopPlayersPanel, TopTeamsPanel } from "@/components/home/Leaderboards";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { StatCard } from "@/components/ui/StatCard";
-import { num, pct } from "@/lib/format";
-
-const link = "text-cyan hover:underline";
+import { dateBR, int, num } from "@/lib/format";
+import { useFilters } from "@/lib/filters";
+import { tournamentOptions } from "@/lib/tournaments";
 
 export default function HomePage() {
-  const { data, isLoading, error } = useMeta();
-  const [q, setQ] = useState("");
-  const search = useSearch(q);
-  const boards = useLeaderboards();
+  const navigate = useNavigate();
+  const { data: meta, error } = useMeta();
+  const maps = useMaps();
+  const recent = useMatches({ limit: 4 });
+  const { filters, set } = useFilters();
+
+  if (error) return <p className="text-accent">Erro ao carregar os dados: {String(error)}</p>;
+  const k = meta?.kpis;
+  const top = [...(maps.data?.items ?? [])].sort((a, b) => b.matches - a.matches)[0];
+  const phases = meta?.tournaments.reduce((n, t) => n + Math.max(1, t.phases.length), 0);
+  const names = [...new Set((meta?.tournaments ?? []).map((t) => (t.name.startsWith("Rush Series") ? "Rush Series" : t.name)))].join(" e ");
 
   return (
     <>
-      <PageHeader title="Visão geral" subtitle="Busca, KPIs e rankings (versão provisória)" />
-      {isLoading && <p className="text-fg-muted">Carregando…</p>}
-      {error && <p className="text-accent">Erro: {String(error)}</p>}
-      {data && (
-        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-6">
-          <StatCard label="Partidas" value={String(data.kpis.matches)} />
-          <StatCard label="Rounds" value={String(data.kpis.rounds)} />
-          <StatCard label="Kills" value={String(data.kpis.kills)} />
-          <StatCard label="Jogadores" value={String(data.kpis.players)} />
-          <StatCard label="Times" value={String(data.kpis.teams)} />
-          <StatCard label="Torneios" value={String(data.kpis.tournaments)} />
-        </div>
-      )}
-
-      <div className="space-y-4">
-        <Panel title="Buscar jogador, time ou mapa">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Digite um Riot ID, time ou mapa…"
-            className="w-full border border-border bg-bg-app px-3 py-2 text-sm text-fg"
-          />
-          {search.data && (
-            <div className="mt-3 grid gap-4 md:grid-cols-3 text-sm">
-              <ul className="space-y-1">
-                {search.data.players.map((p) => (
-                  <li key={p.player.puuid}><Link className={link} to={`/jogador/${p.player.puuid}`}>{p.player.riot_id}</Link> <span className="text-fg-muted">{p.team?.name}</span></li>
-                ))}
-              </ul>
-              <ul className="space-y-1">
-                {search.data.teams.map((t) => (
-                  <li key={t.team.name}><Link className={link} to={`/time/${encodeURIComponent(t.team.name)}`}>{t.team.name}</Link></li>
-                ))}
-              </ul>
-              <ul className="space-y-1">
-                {search.data.maps.map((m) => (
-                  <li key={m.map.name}><Link className={link} to={`/mapa/${m.map.name}`}>{m.map.name}</Link></li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </Panel>
-
-        {boards.data && (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Panel title="Melhores jogadores (K/D)">
-              <ol className="space-y-1 text-sm">
-                {boards.data.players.kd.map((r) => (
-                  <li key={r.player.puuid} className="flex justify-between">
-                    <span><span className="mr-2 text-fg-muted">{r.rank}</span><Link className={link} to={`/jogador/${r.player.puuid}`}>{r.player.riot_id}</Link> <span className="text-fg-muted">{r.team?.name}</span></span>
-                    <span className="font-mono">{num(r.value)} <span className="text-xs text-fg-muted">n={r.rounds}</span></span>
-                  </li>
-                ))}
-              </ol>
-            </Panel>
-            <Panel title="Melhores times (% de rounds)">
-              <ol className="space-y-1 text-sm">
-                {boards.data.teams.round_win_rate.map((r) => (
-                  <li key={r.team.name} className="flex justify-between">
-                    <span><span className="mr-2 text-fg-muted">{r.rank}</span><Link className={link} to={`/time/${encodeURIComponent(r.team.name)}`}>{r.team.name}</Link></span>
-                    <span className="font-mono">{pct(r.value)} <span className="text-xs text-fg-muted">n={r.rounds}</span></span>
-                  </li>
-                ))}
-              </ol>
-            </Panel>
-          </div>
-        )}
+      <PageHeader
+        title="Visão Geral"
+        subtitle={meta ? `Partidas customizadas de VALORANT · ${names} · ${dateBR(meta.date_from)} – ${dateBR(meta.date_to)}` : "Carregando…"}
+      />
+      <div className="flex gap-4">
+        <StatCard label="Partidas" value={k ? int(k.matches) : "—"} footnote="mapas jogados" />
+        <StatCard label="Rounds" value={k ? int(k.rounds) : "—"} footnote={phases ? `em ${phases} torneios/fases` : undefined} />
+        <StatCard label="Abates" value={k ? int(k.kills) : "—"} footnote={k ? `média ${num(k.kills / k.rounds, 1)} por round` : undefined} />
+        <StatCard label="Jogadores" value={k ? int(k.players) : "—"} footnote="identificados por puuid" />
+        <StatCard label="Times" value={k ? int(k.teams) : "—"} footnote="nomes extraídos dos arquivos" />
+        <StatCard label="Mapas" value={meta ? String(meta.maps.length) : "—"} footnote={top ? `${top.map.name} lidera com ${top.matches}` : undefined} />
       </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-display text-xs font-semibold uppercase leading-4 tracking-[0.96px] text-fg-muted">Torneio</span>
+        {tournamentOptions(meta).map((o) => (
+          <FilterChip key={o.value} on={(filters.tournament ?? "") === o.value} onClick={() => set({ tournament: o.value || undefined })}>
+            {o.label}
+          </FilterChip>
+        ))}
+      </div>
+
+      <div className="flex items-start gap-4">
+        <TopPlayersPanel />
+        <TopTeamsPanel />
+      </div>
+
+      <Panel
+        title="Partidas recentes"
+        subtitle="Clique para abrir o relatório da partida"
+        aside={<Link to="/partidas" className="font-display text-xs font-semibold uppercase tracking-[0.96px] text-accent">Ver todas →</Link>}
+      >
+        <MatchesTable items={recent.data?.items ?? []} onOpen={(m) => navigate(`/partida/${m.match_id}`)} />
+      </Panel>
     </>
   );
 }

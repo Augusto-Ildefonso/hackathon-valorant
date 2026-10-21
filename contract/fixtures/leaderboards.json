@@ -12,7 +12,11 @@
         },
         "value": 1.52,
         "matches": 9,
-        "rounds": 201
+        "rounds": 201,
+        "kd": 1.52,
+        "adr": 168.0,
+        "hs_pct": 0.29,
+        "first_kills": 61
       }
     ],
     "adr": [
@@ -71,7 +75,9 @@
         },
         "value": 0.71,
         "matches": 14,
-        "rounds": 330
+        "rounds": 330,
+        "wins": 10,
+        "losses": 4
       }
     ],
     "round_win_rate": [

@@ -26,6 +26,11 @@ class PlayerStats(Model):
     opening_duel_win_pct: Stat
     clutches: int
     multikills: Multikills
+    # raw counts behind the rates (additive in Stream E, needed by the Player screen)
+    shots: int = 0  # headshots + bodyshots + legshots landed
+    first_kills: int = 0
+    first_deaths: int = 0
+    traded_deaths: int = 0  # deaths avenged by a teammate within the trade window
 
 
 class WeaponPerformance(Model):

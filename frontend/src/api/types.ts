@@ -32,8 +32,14 @@ export interface PlayerHit { player: PlayerRef; team: TeamRef | null; matches: n
 export interface TeamHit { team: TeamRef; matches: number }
 export interface MapHit { map: MapRef }
 export interface SearchResponse { query: string; players: PlayerHit[]; teams: TeamHit[]; maps: MapHit[] }
-export interface PlayerLeaderRow { rank: number; player: PlayerRef; team: TeamRef | null; value: number; matches: number; rounds: number; low_sample: boolean }
-export interface TeamLeaderRow { rank: number; team: TeamRef; value: number; matches: number; rounds: number; low_sample: boolean }
+export interface PlayerLeaderRow {
+  rank: number; player: PlayerRef; team: TeamRef | null; value: number; matches: number; rounds: number; low_sample: boolean;
+  kd?: number | null; adr?: number | null; hs_pct?: number | null; first_kills?: number | null;
+}
+export interface TeamLeaderRow {
+  rank: number; team: TeamRef; value: number; matches: number; rounds: number; low_sample: boolean;
+  wins?: number | null; losses?: number | null;
+}
 export interface LeaderboardsResponse {
   players: Record<"kd" | "adr" | "hs_pct" | "first_kills", PlayerLeaderRow[]>;
   teams: Record<"win_rate" | "round_win_rate", TeamLeaderRow[]>;
@@ -45,6 +51,7 @@ export interface PlayerStats {
   matches: number; rounds: number; kills: number; deaths: number; assists: number;
   kd: Stat; adr: Stat; hs_pct: Stat; first_kill_rate: Stat; first_death_rate: Stat; opening_duel_win_pct: Stat;
   clutches: number; multikills: Multikills;
+  shots: number; first_kills: number; first_deaths: number; traded_deaths: number;
 }
 export interface WeaponPerformance {
   weapon: WeaponRef; buy_type: RoundType | null; rounds: number; round_win_rate: Stat; kills: number;
@@ -60,12 +67,12 @@ export interface PlayerProfile {
 // ---- team ----
 export interface TeamListItem { team: TeamRef; matches: number; win_rate: Stat; round_win_rate: Stat; last_match_date: string }
 export interface TeamListResponse { items: TeamListItem[] }
-export interface RosterMember { player: PlayerRef; matches: number; top_role: RoleScore | null }
+export interface RosterMember { player: PlayerRef; matches: number; top_role: RoleScore | null; kd?: number | null; adr?: number | null }
 export interface TeamRecord {
   matches: number; series: number; wins: number; losses: number;
   round_win_rate: Stat; attack_win_rate: Stat; defense_win_rate: Stat;
 }
-export interface TrendPoint { match_id: string; date: string; round_diff: number }
+export interface TrendPoint { match_id: string; date: string; round_diff: number; map_name?: string | null }
 export interface TeamMapPerformance { map: MapRef; matches: number; win_rate: Stat; attack_win_rate: Stat; defense_win_rate: Stat }
 export interface TeamEconomy {
   win_rate_by_round_type: Record<RoundType, Stat>; pistol_win_rate: Stat; plant_site_preference: Partial<Record<Site, Stat>>;

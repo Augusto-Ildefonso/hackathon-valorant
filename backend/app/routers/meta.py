@@ -15,7 +15,7 @@ from ..schemas.common import MatchListItem, MatchSide, PlayerRef, TeamRef
 
 router = APIRouter(prefix="/api", tags=["meta"])
 LEADER_SIZE = 10
-MIN_ROUNDS_FOR_RANKING = 100
+MIN_MATCHES_FOR_RANKING = 5
 
 
 def _norm(s: str) -> str:
@@ -82,19 +82,22 @@ def _tables(tournament: str | None):
 @router.get("/leaderboards", response_model=LeaderboardsResponse)
 def leaderboards(tournament: str | None = None):
     pt, tt = _tables(tournament or None)
-    pt = pt[pt.rounds >= MIN_ROUNDS_FOR_RANKING]  # ~5 matches: keeps tiny samples off the board
+    pt = pt[pt.matches >= MIN_MATCHES_FOR_RANKING]  # the design says "Mínimo de 5 mapas"
     tt = tt[tt.matches >= LOW_SAMPLE["matches"]]
 
     def players(col: str):
         top = pt.dropna(subset=[col]).sort_values(col, ascending=False).head(LEADER_SIZE)
         return [{"rank": n, "player": PlayerRef(puuid=i, riot_id=r.riot_id), "team": TeamRef(name=r.team),
                  "value": float(r[col]), "matches": int(r.matches), "rounds": int(r.rounds),
-                 "low_sample": bool(r.matches < LOW_SAMPLE["matches"])} for n, (i, r) in enumerate(top.iterrows(), 1)]
+                 "low_sample": bool(r.matches < LOW_SAMPLE["matches"]),
+                 "kd": float(r.kd), "adr": float(r.adr), "hs_pct": None if r.hs_pct != r.hs_pct else float(r.hs_pct),
+                 "first_kills": int(r.first_kills)} for n, (i, r) in enumerate(top.iterrows(), 1)]
 
     def teams(col: str):
         top = tt.sort_values(col, ascending=False).head(LEADER_SIZE)
         return [{"rank": n, "team": TeamRef(name=i), "value": float(r[col]), "matches": int(r.matches),
-                 "rounds": int(r.rounds), "low_sample": bool(r.matches < LOW_SAMPLE["matches"])}
+                 "rounds": int(r.rounds), "low_sample": bool(r.matches < LOW_SAMPLE["matches"]),
+                 "wins": int(r.wins), "losses": int(r.losses)}
                 for n, (i, r) in enumerate(top.iterrows(), 1)]
 
     return {"players": {c: players(c) for c in ("kd", "adr", "hs_pct", "first_kills")},

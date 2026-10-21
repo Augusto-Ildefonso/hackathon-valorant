@@ -1,12 +1,17 @@
-// Titled content block + a stat cell that always shows its sample size. Added by Stream B; E may restyle (props stay).
+// Figma "Panel / ..." card: title + subtitle header with an optional right slot. Owner: Stream E (added by B).
 import type { ReactNode } from "react";
 import type { Stat } from "@/api/types";
 
-export function Panel({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
+export function Panel({ title, subtitle, aside, children, className = "" }: {
+  title: string; subtitle?: string; aside?: ReactNode; children: ReactNode; className?: string;
+}) {
   return (
-    <section className="border border-border bg-surface p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-fg-secondary">{title}</h2>
+    <section className={`flex min-w-0 flex-col gap-4 rounded-md border border-border bg-surface p-5 ${className}`}>
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-xl font-semibold leading-[26px] text-fg">{title}</h2>
+          {subtitle && <p className="text-xs leading-4 text-fg-muted">{subtitle}</p>}
+        </div>
         {aside}
       </div>
       {children}

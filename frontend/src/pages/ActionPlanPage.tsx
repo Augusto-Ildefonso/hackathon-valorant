@@ -1,22 +1,309 @@
-// Stub. Owner: Stream D. Round-by-round plan for the whole match (see project-details §5.6).
-import { usePlan } from "@/api/hooks";
+// Action Plan (Figma "Screen / Action Plan", 32:432): round-by-round plan for the whole match. Owner: Stream D
+// (layout from the design by Stream E). Data: POST /api/plan (stub returns a fixture until Stream D ships it).
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useMaps, useMeta, usePlan, useTeams } from "@/api/hooks";
+import type { PlanRequest, PlanResponse, RoundPlan, RoundType, Side } from "@/api/types";
+import { MinimapCanvas } from "@/components/map/MinimapCanvas";
+import { AgentIcon } from "@/components/ui/AgentIcon";
+import { Badge, type Tone } from "@/components/ui/Badge";
+import { DataTable } from "@/components/ui/DataTable";
+import { InsightCard } from "@/components/ui/InsightList";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { ROUND_TYPE_PT, pct, seconds } from "@/lib/format";
+
+const TYPE_TONE: Record<RoundType, Tone> = { pistol: "violet", eco: "amber", semi_eco: "neutral", force: "red", full_buy: "green" };
+const TYPE_SHORT: Record<RoundType, string> = { pistol: "PISTOL", eco: "ECO", semi_eco: "SEMI", force: "FORCE", full_buy: "FULL" };
+const SIDE_PT: Record<Side, string> = { attack: "Ataque", defense: "Defesa" };
+const SIDE_SHORT: Record<Side, string> = { attack: "ATQ", defense: "DEF" };
+const label = "font-display text-xs font-semibold uppercase leading-4 tracking-[0.96px] text-fg-muted";
+const mono = "font-mono font-medium";
+
+function Picker({ title, value, sub, options, onChange, ring }: {
+  title: string; value: string; sub?: string; options: Array<[string, string]>; onChange: (v: string) => void; ring?: string;
+}) {
+  return (
+    <label className={`relative flex min-w-0 flex-1 cursor-pointer flex-col gap-[2px] rounded-sm border bg-surface px-4 py-3 ${ring ?? "border-border"}`}>
+      <span className={label}>{title}</span>
+      <span className="flex items-center justify-between gap-2 text-sm font-medium text-fg"><span className="truncate">{options.find(([v]) => v === value)?.[1] ?? value}</span><span className="text-[10px] text-fg-muted">▾</span></span>
+      <span className="text-[11px] leading-[14px] text-fg-muted">{sub ?? " "}</span>
+      <select aria-label={title} value={value} onChange={(e) => onChange(e.target.value)} className="absolute inset-0 w-full cursor-pointer opacity-0">
+        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function buySummary(r: RoundPlan): string {
+  const counts = new Map<string, number>();
+  for (const b of r.buy) {
+    const n = b.weapon?.name ?? "Arma desconhecida";
+    counts.set(n, (counts.get(n) ?? 0) + 1);
+  }
+  return [...counts].map(([n, c]) => (c > 1 ? `${n} ×${c}` : n)).join(", ") || "—";
+}
+
+function RoundChip({ r, selected, onClick }: { r: RoundPlan; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex h-[78px] w-[88px] shrink-0 flex-col items-center justify-center gap-1 border ${selected ? "border-accent bg-surface-accent" : "border-border bg-surface-raised/40 hover:border-border-strong"}`}
+    >
+      <span className="flex items-center gap-1 text-xs font-medium text-fg-secondary">
+        R{r.number}<span className={`size-[6px] rounded-full ${r.base_scenario_result === "win" ? "bg-green" : "bg-accent"}`} />
+      </span>
+      <span className={`font-display text-[11px] font-semibold ${r.side === "attack" ? "text-accent" : "text-violet"}`}>{SIDE_SHORT[r.side]}</span>
+      <Badge tone={TYPE_TONE[r.round_type]} className="!px-2 !py-0 text-[11px]">{TYPE_SHORT[r.round_type]}</Badge>
+    </button>
+  );
+}
+
+function RoundDetail({ plan, round, prev }: { plan: PlanResponse; round: RoundPlan; prev?: RoundPlan }) {
+  const c = round.contingency;
+  const baseWon = prev?.base_scenario_result === "win";
+  return (
+    <Panel
+      title={`Round ${round.number} · ${SIDE_PT[round.side]} · ${ROUND_TYPE_PT[round.round_type]}`}
+      subtitle="Detalhe do plano para o round selecionado"
+      aside={
+        <div className="flex gap-2">
+          <Badge tone={TYPE_TONE[round.round_type]}>{ROUND_TYPE_PT[round.round_type]}</Badge>
+          <Badge tone={round.side === "attack" ? "red" : "violet"}>{SIDE_PT[round.side]}</Badge>
+          <Badge tone="neutral">Cenário base: {round.base_scenario_result === "win" ? "vitória" : "derrota"}</Badge>
+        </div>
+      }
+    >
+      <div className="grid grid-cols-3 gap-5">
+        <div className="flex flex-col gap-4">
+          <p className={label}>Economia projetada</p>
+          <div className="flex flex-col">
+            <div className="flex justify-between border-b border-border py-3 text-sm"><span className="text-fg-secondary">Créditos do time</span><span className={`${mono} text-amber`}>{round.projected_economy.team_credits.toLocaleString("pt-BR")}</span></div>
+            <div className="flex justify-between border-b border-border py-3 text-sm"><span className="text-fg-secondary">Créditos do inimigo</span><span className={`${mono} text-accent`}>{round.projected_economy.enemy_credits.toLocaleString("pt-BR")}</span></div>
+          </div>
+          <p className="text-xs leading-4 text-fg-muted">{round.projected_economy.reasoning_pt}</p>
+          <p className={label}>Compra recomendada</p>
+          <div className="flex flex-col gap-2">
+            {round.buy.map((b, i) => (
+              <div key={i} className="rounded-sm border border-border bg-surface-raised/50 px-3 py-2">
+                <p className="text-sm font-semibold capitalize text-fg">{b.role} <span className="font-normal text-fg-secondary">· {b.weapon?.name ?? "Guardar"}{b.armor !== "none" ? ` + escudo ${b.armor === "light" ? "leve" : "pesado"}` : ""}</span></p>
+                <p className="text-[11px] leading-[14px] text-fg-muted">{b.reason_pt}</p>
+              </div>
+            ))}
+          </div>
+          <p className={label}>Contingência</p>
+          {(!prev || round.round_type === "pistol") && (
+            <p className="text-xs leading-4 text-fg-muted">Round de pistol: a economia reinicia, então não há contingência do round anterior.</p>
+          )}
+          <div className={`grid grid-cols-2 gap-2 ${!prev || round.round_type === "pistol" ? "hidden" : ""}`}>
+            {([["vencer", c.if_previous_won, prev ? baseWon : false], ["perder", c.if_previous_lost, prev ? !baseWon : false]] as const).map(([k, o, base]) => (
+              <div key={k} className="rounded-sm border border-border bg-surface-raised/50 p-3">
+                <p className={label}>Se {k} R{round.number - 1}{base ? " (base)" : ""}</p>
+                <Badge tone={TYPE_TONE[o.round_type]} className="my-2">{ROUND_TYPE_PT[o.round_type]}</Badge>
+                <p className="text-[11px] leading-[14px] text-fg-secondary">{o.summary_pt}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <p className={label}>Estratégia de {round.side === "attack" ? "ataque" : "defesa"} · {ROUND_TYPE_PT[round.round_type]}</p>
+          <div className="flex items-stretch overflow-hidden rounded-md border border-border bg-surface">
+            <div className="w-[3px] shrink-0 bg-violet" />
+            <div className="flex flex-col gap-[6px] px-4 py-3">
+              <span className="font-display text-xs font-semibold uppercase tracking-[0.96px] text-violet">Estratégia</span>
+              <p className="text-sm leading-5 text-fg">{round.strategy.summary_pt}</p>
+              {round.strategy.steps_pt.length > 0 && (
+                <ul className="list-disc pl-4 text-sm text-fg-secondary">{round.strategy.steps_pt.map((s) => <li key={s}>{s}</li>)}</ul>
+              )}
+              <p className="font-mono text-xs text-fg-muted">
+                {round.strategy.site ? `site ${round.strategy.site}` : ""}{round.strategy.timing ? ` · ${round.strategy.timing}` : ""} · vitória estimada {pct(round.win_probability.value)} · n = {round.win_probability.sample_size}
+                {round.win_probability.low_sample ? " ⚠" : ""}
+              </p>
+            </div>
+          </div>
+          <p className={label}>Pontos fracos do adversário neste round</p>
+          <div className="flex flex-col gap-3">
+            {round.enemy_weak_points.length ? round.enemy_weak_points.map((i) => <InsightCard key={i.id} insight={i} />) : <p className="text-sm text-fg-muted">Sem dados suficientes.</p>}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <p className={label}>Movimento provável do adversário</p>
+          <MinimapCanvas
+            map={plan.map}
+            size={260}
+            routes={round.enemy_probable_strategy.route.length > 1 ? [{ points: round.enemy_probable_strategy.route, color: "#ffb547" }] : []}
+          />
+          <p className="text-xs leading-4 text-fg-secondary">
+            {round.enemy_probable_strategy.summary_pt}
+            <span className="ml-1 font-mono text-fg-muted">n = {round.enemy_probable_strategy.evidence.sample_size}{round.enemy_probable_strategy.evidence.low_sample ? " ⚠" : ""}</span>
+          </p>
+          {round.insights.map((i) => <InsightCard key={i.id} insight={i} />)}
+        </div>
+      </div>
+    </Panel>
+  );
+}
 
 export default function ActionPlanPage() {
+  const [params] = useSearchParams();
+  const { data: meta } = useMeta();
+  const { data: teams } = useTeams();
+  const { data: maps } = useMaps();
   const plan = usePlan();
+  const names = useMemo(() => (teams?.items ?? []).map((t) => t.team.name), [teams]);
+  const [a, setA] = useState(params.get("teamA") ?? "");
+  const [b, setB] = useState("");
+  const [map, setMap] = useState("Ascent");
+  const [rph, setRph] = useState(12);
+  const [start, setStart] = useState<Side>("attack");
+  const [persp, setPersp] = useState<"a" | "b">("a");
+  const [sel, setSel] = useState(1);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {  // sensible defaults once the team list is known
+    if (!names.length) return;
+    setA((x) => x || names[0]);
+    setB((x) => x || names.find((n) => n !== (params.get("teamA") ?? names[0])) || names[1] || "");
+  }, [names, params]);
+
+  const run = (p: "a" | "b" = persp, over?: Partial<PlanRequest>) => {
+    if (!a || !b) return;
+    plan.mutate({ team_a: a, team_b: b, map, perspective: p, rounds_per_half: rph, starting_side: start, ...over });
+    setSel(1);
+  };
+  useEffect(() => { if (a && b && !plan.data && !plan.isPending && !plan.isError) run(); }, [a, b]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const info = (n: string) => teams?.items.find((t) => t.team.name === n);
+  const sub = (n: string) => { const t = info(n); return t ? `${t.matches} partidas · ${pct(t.win_rate.value)}` : undefined; };
+  const mapInfo = maps?.items.find((m) => m.map.name === map);
+  const teamOpts: Array<[string, string]> = names.map((n) => [n, n]);
+  const data = plan.data;
+  const rounds = data?.rounds ?? [];
+  const round = rounds.find((r) => r.number === sel) ?? rounds[0];
+  const forTeam = data ? (data.perspective === "a" ? data.team_a.name : data.team_b.name) : persp === "a" ? a : b;
+  const enemy = data ? (data.perspective === "a" ? data.team_b.name : data.team_a.name) : "";
+  const half = (h: 1 | 2) => rounds.filter((r) => r.half === h);
+  const sideOf = (h: 1 | 2) => half(h)[0]?.side;
+
   return (
     <>
-      <PageHeader title="Plano de ação" subtitle="Plano rodada a rodada para a partida inteira (em construção)" />
-      <button
-        className="bg-accent px-4 py-2 font-display text-sm font-semibold uppercase text-on-accent hover:bg-accent-hover"
-        onClick={() =>
-          plan.mutate({ team_a: "Fatec PG", team_b: "Panterão Gaming", map: "Ascent", perspective: "a", rounds_per_half: 12, starting_side: "attack" })
-        }
-      >
-        Gerar plano
-      </button>
-      {plan.data && <p className="mt-4 text-fg-secondary">{plan.data.rounds.length} rounds planejados.</p>}
-      {plan.error && <p className="mt-4 text-accent">Erro: {String(plan.error)}</p>}
+      <PageHeader title="Plano de Ação" subtitle="Planejamento pré-partida com base em dados históricos. Escolha dois times e um mapa; o plano é gerado para a perspectiva selecionada." />
+
+      <div className="flex items-stretch gap-3 rounded-md border border-border bg-surface p-5">
+        <Picker title="Time A" value={a} sub={sub(a)} options={teamOpts} onChange={setA} ring="border-cyan" />
+        <button onClick={() => { setA(b); setB(a); }} aria-label="Trocar times" className="shrink-0 self-center rounded-sm border border-border bg-surface-raised px-3 py-2 text-fg-secondary hover:text-fg">⇄</button>
+        <Picker title="Time B (inimigo)" value={b} sub={sub(b)} options={teamOpts} onChange={setB} ring="border-amber" />
+        <Picker title="Mapa" value={map} sub={mapInfo ? `${mapInfo.matches} partidas` : undefined} options={(meta?.maps ?? [{ name: "Ascent" }]).map((m) => [m.name, m.name])} onChange={setMap} />
+        <Picker title="Rodadas/tempo" value={String(rph)} sub={`${rph * 2} rounds`} options={[5, 6, 8, 10, 12].map((n) => [String(n), String(n)])} onChange={(v) => setRph(Number(v))} />
+        <Picker title="Começa em" value={start} sub={`troca no round ${rph + 1}`} options={[["attack", "Ataque"], ["defense", "Defesa"]]} onChange={(v) => setStart(v as Side)} />
+        <button onClick={() => run()} disabled={!a || !b || plan.isPending} className="shrink-0 self-center rounded-sm bg-accent px-6 py-3 font-display text-xs font-semibold uppercase tracking-[0.96px] text-on-accent hover:bg-accent-hover disabled:opacity-50">
+          {plan.isPending ? "Gerando…" : "Gerar plano"}
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={label}>Plano para</span>
+        {([["a", a], ["b", b]] as const).map(([p, n]) => (
+          <button key={p} onClick={() => { setPersp(p); run(p); }} className={`rounded-sm border px-4 py-2 text-sm font-medium ${persp === p ? "border-accent bg-surface-accent text-fg" : "border-border bg-surface text-fg-secondary"}`}>{n || "—"}</button>
+        ))}
+        <span className="ml-auto text-[11px] text-fg-muted">
+          {info(a) && info(b) ? `Base de dados: ${info(a)!.matches} partidas do time · ${info(b)!.matches} do adversário${mapInfo ? ` · ${mapInfo.matches} no mapa` : ""} · gerado por regras com evidências` : "Gerado por regras com evidências"}
+        </span>
+      </div>
+
+      {plan.isError && <p className="text-accent">Não foi possível gerar o plano: {String(plan.error)}</p>}
+      {plan.isPending && !data && <p className="text-fg-muted">Gerando plano…</p>}
+
+      {data && round && (
+        <>
+          <div className="flex items-stretch gap-4">
+            <Panel className="flex-1" title="Agentes recomendados" subtitle={`Composição sugerida para ${forTeam} em ${data.map.name}`}>
+              <div className="grid grid-cols-5 gap-3">
+                {data.agents.map((g) => (
+                  <div key={g.agent.id} className="flex flex-col gap-2 rounded-sm border border-border bg-surface-raised/50 p-3">
+                    <AgentIcon agent={g.agent} size={40} />
+                    <p className="text-sm font-semibold text-fg">{g.agent.name ?? "Agente desconhecido"}</p>
+                    {g.role && <Badge tone="red" className="self-start">{g.role}</Badge>}
+                    <p className="text-[11px] leading-[14px] text-fg-muted">{g.reason_pt} · n = {g.evidence.sample_size}{g.evidence.low_sample ? " ⚠" : ""}</p>
+                  </div>
+                ))}
+                {data.agents.length === 0 && <p className="text-sm text-fg-muted">Sem histórico suficiente neste mapa.</p>}
+              </div>
+            </Panel>
+            <Panel className="w-[340px] shrink-0" title="Perfil do adversário" subtitle={`${enemy} em ${data.map.name}`}>
+              <div className="flex flex-col text-sm">
+                {([
+                  ["Site preferido no ataque", data.opponent.preferred_site ?? "—", "text-fg"],
+                  ["Tempo médio até o plante", seconds(data.opponent.avg_time_to_plant_ms.value), "text-fg"],
+                  ["Vitória no ataque", pct(data.opponent.attack_win_rate.value), "text-fg"],
+                  ["Vitória na defesa", pct(data.opponent.defense_win_rate.value), "text-accent"],
+                  ["Pistol rounds vencidos", pct(data.opponent.pistol_win_rate.value), "text-accent"],
+                  ["Rounds de eco", pct(data.opponent.eco_win_rate.value), "text-amber"],
+                ] as const).map(([l, v, c]) => (
+                  <div key={l} className="flex justify-between border-b border-border py-3"><span className="text-fg-secondary">{l}</span><span className={`${mono} ${c}`}>{v}</span></div>
+                ))}
+              </div>
+              {data.opponent.insights.map((i) => <InsightCard key={i.id} insight={i} />)}
+            </Panel>
+          </div>
+
+          <Panel
+            title="Linha do tempo da partida"
+            subtitle={`Plano para ${forTeam} · cenário base: o resultado mais provável de cada round`}
+            aside={<div className="flex gap-2">{(["pistol", "eco", "semi_eco", "force", "full_buy"] as RoundType[]).map((t) => <Badge key={t} tone={TYPE_TONE[t]}>{ROUND_TYPE_PT[t]}</Badge>)}</div>}
+          >
+            {([1, 2] as const).map((h) => half(h).length > 0 && (
+              <div key={h} className="flex flex-col gap-2">
+                <p className={label}>
+                  {h}º tempo · {forTeam} {sideOf(h) === "attack" ? "ataca" : "defende"}
+                  {h === 2 && ` · rounds ${half(2)[0].number}–${rounds[rounds.length - 1].number} (pistol no round ${half(2)[0].number})`}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {half(h).map((r) => <RoundChip key={r.number} r={r} selected={r.number === round.number} onClick={() => setSel(r.number)} />)}
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-fg-muted">Ponto verde = vitória no cenário base · ponto vermelho = derrota. O tipo de cada round muda conforme o resultado: veja a contingência no detalhe do round.</p>
+          </Panel>
+
+          <RoundDetail plan={data} round={round} prev={rounds.find((r) => r.number === round.number - 1)} />
+
+          <Panel title="Plano completo" subtitle="Um registro por round · base para leitura rápida e exportação">
+            <DataTable
+              rows={showAll ? rounds : rounds.slice(0, 8)}
+              rowKey={(r) => String(r.number)}
+              onRowClick={(r) => { setSel(r.number); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              columns={[
+                { key: "n", header: "Rd", width: 32, className: `${mono} text-fg-muted`, render: (r) => r.number },
+                { key: "s", header: "Lado", width: 50, className: `font-display text-xs font-semibold ${""}`, render: (r) => <span className={r.side === "attack" ? "text-accent" : "text-violet"}>{SIDE_SHORT[r.side]}</span> },
+                { key: "t", header: "Tipo", width: 80, render: (r) => <Badge tone={TYPE_TONE[r.round_type]}>{TYPE_SHORT[r.round_type]}</Badge> },
+                { key: "b", header: "Compra recomendada", width: 220, render: (r) => buySummary(r) },
+                { key: "p", header: "Plano resumido", render: (r) => r.strategy.summary_pt },
+                { key: "e", header: "Movimento provável do inimigo", width: 230, render: (r) => r.enemy_probable_strategy.summary_pt },
+                { key: "w", header: "Base", width: 40, align: "center", render: (r) => <span className={`size-2 rounded-full ${r.base_scenario_result === "win" ? "bg-green" : "bg-accent"}`} /> },
+              ]}
+            />
+            {rounds.length > 8 && (
+              <button onClick={() => setShowAll(!showAll)} className="self-start rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-secondary hover:text-fg">
+                {showAll ? "Mostrar menos" : `Mostrar rounds 9–${rounds.length}`}
+              </button>
+            )}
+          </Panel>
+
+          <div className="flex items-center gap-4 rounded-md border border-border bg-surface p-5">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-base font-semibold text-fg">Narrativa de treinador (opcional)</h2>
+              <p className="text-xs leading-4 text-fg-muted">Reescreve o plano em linguagem natural usando apenas os fatos e números acima. O plano estruturado continua visível.</p>
+              {data.narrative_pt && <p className="mt-3 whitespace-pre-line text-sm leading-5 text-fg-secondary">{data.narrative_pt}</p>}
+            </div>
+            <button disabled title={data.narrative_pt ? "Narrativa já gerada" : "Narrativa desativada neste ambiente (a flag do LLM está desligada)"} className="rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-muted opacity-60">Gerar narrativa</button>
+            <button onClick={() => window.print()} className="rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-secondary hover:text-fg">Exportar PDF</button>
+          </div>
+        </>
+      )}
+      {!data && !plan.isPending && !plan.isError && <p className="text-fg-muted">Escolha os times e clique em “Gerar plano”.</p>}
     </>
   );
 }

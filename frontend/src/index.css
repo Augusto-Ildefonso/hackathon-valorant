@@ -21,6 +21,13 @@
   --color-blue: #5b8def;
   --color-violet: #a07bff;
 
+  --color-tint-red: #35161d;
+  --color-tint-amber: #33291a;
+  --color-tint-neutral: #222b36;
+  --color-tint-cyan: #112e2d;
+  --color-tint-green: #14301f;
+  --color-tint-violet: #261f3a;
+
   --font-display: "Chakra Petch", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;

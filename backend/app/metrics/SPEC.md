@@ -61,6 +61,7 @@ Filter first with `store.where(tournament=, map_name=, date_from=, date_to=, tea
 Implementation notes (verified on the real data)
 - **Trade:** the avenged kill must come earlier in the round order (`order_p < order_k`), so an opening kill is never a trade.
 - **Clutch:** a 1vX is any moment a team is down to one alive player while `X >= 1` enemies live; `won` = that team wins the round. All 247 rounds the game labels `CeremonyClutch` are among them (the game's flag is stricter), so use `vs` to filter (e.g. `vs >= 2`) when showing "clutches".
+- **View direction (verified):** `viewRadians` t maps to the minimap direction `(sin t, -cos t)` (x right, y down). Over ~4,000 real Ascent weapon kills the killer's view points at the victim with a median error of 0.3 degrees, which also confirms the coordinate transform in `coords.py`. The frontend draws view cones with this formula.
 - **Economy:** `project_next_credits` = previous `remaining` + income (win 3000; loss 1900/2400/2900/3400 by streak; +300 plant bonus when attackers planted and lost; +200 per kill), capped at 9000; rounds 0 and 12 start at 800. Median error vs the real next-round credits is under 400 (tested).
 - **Round type transitions:** key = (previous type, previous result, loss streak capped at 3); team-specific when it has >= 30 matching rounds, otherwise global (`source` says which).
 - **Round win probability:** shrinkage `(wins + 10 * p_global) / (n + 10)`, `p_global` = dataset win rate for (side, round type[, enemy round type when >= 30 samples]).

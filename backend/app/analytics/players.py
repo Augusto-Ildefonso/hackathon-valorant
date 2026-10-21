@@ -43,18 +43,20 @@ def _weapons(store: Store, puuid: str) -> list[WeaponPerformance]:
     rps = rps[rps.weapon_id.notna()].merge(tr, on=KEY + ["team_name"])
     deaths = store.kills[store.kills.victim == puuid][KEY].assign(died=1).drop_duplicates()
     rps = rps.merge(deaths, on=KEY, how="left").fillna({"died": 0})
-    out = []
-    for (wid, rtype), g in rps.groupby(["weapon_id", "round_type"]):
+    def row(wid, rtype, g) -> WeaponPerformance:
         n = len(g)
-        if n < MIN_WEAPON_ROUNDS:
-            continue
         shots = g[["headshots", "bodyshots", "legshots"]].sum().sum()
-        out.append(WeaponPerformance(
+        return WeaponPerformance(
             weapon=cat.weapon(wid), buy_type=rtype, rounds=n, round_win_rate=make_stat(g.won.mean(), n),
             kills=int(g.kills_n.sum()), kd=make_stat(g.kills_n.sum() / max(g.died.sum(), 1), n),
             hs_pct=make_stat(g.headshots.sum() / shots if shots else None, int(shots), "rounds"),
-            damage_per_round=make_stat(g.damage_dealt.mean(), n)))
-    return sorted(out, key=lambda w: -w.rounds)[:MAX_WEAPON_ROWS]
+            damage_per_round=make_stat(g.damage_dealt.mean(), n))
+
+    # buy_type=None rows aggregate a weapon over every buy type (what the Player screen lists); typed rows split it
+    out = [row(wid, None, g) for wid, g in rps.groupby("weapon_id") if len(g) >= MIN_WEAPON_ROUNDS]
+    out = sorted(out, key=lambda w: -w.rounds)[:MAX_WEAPON_ROWS]
+    typed = [row(wid, rtype, g) for (wid, rtype), g in rps.groupby(["weapon_id", "round_type"]) if len(g) >= MIN_WEAPON_ROUNDS]
+    return out + sorted(typed, key=lambda w: -w.rounds)[:MAX_WEAPON_ROWS]
 
 
 def _by_map(store: Store, puuid: str) -> list[MapPerformance]:
@@ -83,7 +85,9 @@ def player_profile(store: Store, puuid: str, full_store: Store | None = None) ->
         hs_pct=make_stat(row.hs_pct, n_rounds), first_kill_rate=make_stat(row.first_kills / max(n_rounds, 1), n_rounds),
         first_death_rate=make_stat(row.first_deaths / max(n_rounds, 1), n_rounds),
         opening_duel_win_pct=make_stat(row.opening_win_pct, int(row.first_kills + row.first_deaths), "events"),
-        clutches=int(row.clutches), multikills=Multikills(k2=int(row.k2), k3=int(row.k3), k4=int(row.k4), k5=int(row.k5)))
+        clutches=int(row.clutches), multikills=Multikills(k2=int(row.k2), k3=int(row.k3), k4=int(row.k4), k5=int(row.k5)),
+        shots=int(row.shots), first_kills=int(row.first_kills), first_deaths=int(row.first_deaths),
+        traded_deaths=int(row.traded_deaths))
     agents = _agents(sub, puuid)
     teams = (mp.merge(store.matches[["match_id", "game_start_ms"]], on="match_id")
              .sort_values("game_start_ms", ascending=False).team_name.drop_duplicates())
@@ -91,5 +95,5 @@ def player_profile(store: Store, puuid: str, full_store: Store | None = None) ->
     return PlayerProfile(
         player=PlayerRef(puuid=puuid, riot_id=riot_id), teams=[TeamRef(name=t) for t in teams],
         favorite_agent=agents[0].agent if agents else None,  # most played (may be an unknown, newer agent)
-        roles=role_model(full_store or store).roles_for(puuid), stats=stats, weapons=_weapons(sub, puuid),
+        roles=role_model(full_store or store).roles_for(puuid, top=5), stats=stats, weapons=_weapons(sub, puuid),
         by_map=_by_map(sub, puuid), agents=agents, insights=[])
