@@ -36,5 +36,11 @@ Home (search, KPIs, leaderboards, recent matches) · Player Profile · Team Prof
 - The catalog is outdated: some agents/weapons/armors have no name. Show them as unknown (or clearly labeled as inferred), never invent names.
 - Always show the sample size behind a stat and flag low-sample values.
 
+## Plans (mandatory workflow)
+- Plans live in `.claude/plans/` (current: `mvp-plan.md`, the parallel build plan with streams A-F, ownership and checkpoints).
+- **Before starting any task, read `.claude/plans/`** and find the stream/item the work belongs to. Do not redo anything already marked done, and do not touch files owned by another stream.
+- **Every commit must update the plan** in the same commit: mark finished items as done (`[x]` with date and short note), add newly discovered tasks, and record decisions or contract changes. A commit that changes code without updating the plan is incomplete.
+- If the plan and the code disagree, fix the plan first so nobody repeats work.
+
 ## Conventions
-- Persist plans and roadmaps in `.claude/plans/<feature>-plan.md` and keep them updated.
+- Persist new plans and roadmaps in `.claude/plans/<feature>-plan.md`.

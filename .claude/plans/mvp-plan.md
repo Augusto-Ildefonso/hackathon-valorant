@@ -1,0 +1,158 @@
+# Implementation Plan: VALORANT Analytics Dashboard (parallel build)
+
+> After approval, copy this file to `.claude/plans/mvp-plan.md` in the repo (per global CLAUDE.md) and keep it updated as streams complete.
+
+## Progress tracker (update in EVERY commit; format: `[x] item (YYYY-MM-DD, note)`)
+- [ ] Phase 0: repo skeleton (backend + frontend, `make dev`)
+- [ ] Phase 0: Pydantic schemas + contract fixtures + mock layer
+- [ ] Phase 0: data SCHEMA.md + metrics SPEC.md + mini test store
+- [ ] Phase 0: design-system stubs + CONTRIBUTING.md
+- [ ] A: filenames parser (tested on all files)
+- [ ] A: loader + cache + team/colour mapping
+- [ ] A: catalog + coords (validated on minimaps)
+- [ ] A: metrics implementation
+- [ ] A: meta/search/leaderboards/matches endpoints
+- [ ] B: players analytics + roles + endpoint + PlayerPage
+- [ ] B: teams analytics + endpoint + TeamPage
+- [ ] C: maps + heatmaps + blind-spot layers + endpoints
+- [ ] C: match report + kill replay + endpoints
+- [ ] C: MinimapCanvas + MapPage + MatchPage
+- [ ] D: insight engine + rules (player/team/match)
+- [ ] D: action plan backend + endpoint + ActionPlanPage
+- [ ] D: optional LLM polish (flagged)
+- [ ] E: app shell, filters, API client, design system styling
+- [ ] E: HomePage (search, KPIs, leaderboards, recent matches)
+- [ ] E: Playwright smoke tests + UX polish
+- [ ] F: pitch script, showcase entities, recording, submission
+- [ ] Catalog-usage confirmation from organizers (Discord ticket)
+
+## Context
+Hackathon deadline is **Fri 23/10/2026 23h59** (today is Tue 20/10, so ~3.5 working days). Scope is fixed in `.claude/docs/project-details.md`: 6 screens (Home, Player, Team, Map, Match Report, Action Plan), impartial (no "our team"), FastAPI + pandas in-memory backend, React/Vite/Tailwind dark frontend, rule-based insights with evidence. The repo currently has docs, `data/` and `public_catalog/` only, no code.
+
+Builders are a mix of humans and Claude sessions working at the same time. The plan therefore minimizes coupling with three rules:
+1. **Contract first:** a short Phase 0 freezes the API contract, fixtures, data-frame schema and folder layout, so every stream can work against mocks from hour one.
+2. **Vertical slices with strict file ownership:** each stream owns its backend module, its router and its frontend screen. No two streams edit the same file.
+3. **Integrate early and often:** small PRs to `main`, an integration checkpoint every day.
+
+## Phase 0: Contract freeze (single owner, target ≤ 3-4 h, everyone else waits or reads docs)
+Owner: Stream A (platform). Deliverables, all merged to `main` before streams start coding:
+
+1. **Repo layout** (below) with empty runnable skeletons: `backend/` (FastAPI app + `/api/health`, pytest) and `frontend/` (Vite + React + Tailwind + router with 6 empty routes). One-command dev: `make dev` (or two documented commands) and Vite proxy `/api` → `:8000`.
+2. **`contract/openapi.md` + Pydantic response models** in `backend/app/schemas/` (one file per domain: `meta.py`, `player.py`, `team.py`, `map.py`, `match.py`, `plan.py`, `common.py`). Shared types: `Insight {id, kind: strength|weakness|tip|strategy, text_pt, evidence: {metric, value, baseline?, sample_size}, low_sample: bool}`, `Point {x, y}` already in minimap-normalized 0..1 coordinates, `Side = attack|defense`.
+3. **Fixtures:** `contract/fixtures/<endpoint>.json`, one realistic example per endpoint, derived from 2-3 real matches. The frontend consumes these through a mock layer (`frontend/src/api/mock.ts`, toggled by `VITE_USE_MOCKS=1`) so UI work needs no backend.
+4. **Data-frame schema doc** `backend/app/data/SCHEMA.md`: the normalized tables (matches, match_players, rounds, round_player_stats, kills, damage) with column names and dtypes, plus the `Store` interface (`store.matches`, `store.kills`, …, `store.team_of(match_id, puuid)`, `store.side(match_id, round, team)`). Analytics streams code against this and use a tiny **test store** (`backend/tests/fixtures/mini_store.py`, built from 3 real files) until the real loader lands.
+5. **Shared metric definitions** `backend/app/metrics/SPEC.md` (from §6 of project-details: HS%, ADR, first kill, trade window, buy-type thresholds, clutch, side per round). Stream A implements them in `backend/app/metrics/` by end of Day 1 (Wed AM); others can call them via the interface or stub.
+6. **Frontend design system stubs** (owned by Stream E): Tailwind theme tokens (dark/red palette), `StatCard`, `InsightList` (renders `Insight` with evidence + low-sample badge), `DataTable`, `FilterBar`, `PageHeader`, `AgentIcon`/`WeaponIcon` (catalog URLs), `EmptyState`. Stubs with the final props signature are enough; styling is refined later.
+7. **Branch/PR rules** in `CONTRIBUTING.md` (short): branch per stream `stream-x/<topic>`, PRs to `main`, squash-merge, rebase before merging, never edit files you do not own (open a PR comment or ask the owner), contract changes only through a PR that touches `contract/` + `schemas/` and is announced to all streams. Claude sessions use one git worktree each.
+
+### Repo layout and ownership
+```
+backend/app/
+  main.py, deps.py                      A   app wiring, router registration (A adds a line per router once)
+  schemas/*.py                          A (frozen after Phase 0; changes by PR)
+  data/   loader.py, filenames.py, catalog.py, coords.py, store.py   A
+  metrics/                              A
+  analytics/players.py, roles.py        B
+  analytics/teams.py                    B
+  analytics/maps.py, heatmaps.py        C
+  analytics/matches.py, replay.py       C
+  insights/rules_*.py, engine.py        D   (reads metrics outputs, never raw JSON)
+  insights/action_plan.py, llm.py       D
+  routers/{meta,players,teams}.py       A (meta) / B
+  routers/{maps,matches}.py             C
+  routers/plan.py                       D
+frontend/src/
+  api/ (client, types, mock)            E
+  components/ui/*                       E
+  components/map/MinimapCanvas.tsx      C   (layers: heat, kills, trajectories, plants)
+  pages/Home*                           E
+  pages/Player*, pages/Team*            B
+  pages/Map*, pages/Match*              C
+  pages/ActionPlan*                     D
+contract/ fixtures + openapi.md         A
+```
+
+## Workstreams (run in parallel after Phase 0)
+
+### Stream A: Platform + data layer (the only "critical path" stream, finishes core by Wed noon)
+- `filenames.py`: parse tournament, match no., date, team A/B, scores, map from filenames (incl. `a`/`b` suffixes, names with underscores like `fatec_pg`, `azure_bears_golden`). Unit-test against **every** file in `data/`.
+- `loader.py`: parse all JSON in `data/` (recursive, skip `.DS_Store`) into the normalized tables; exclude observers; normalize empty encodings (`null`/`""`/`(0,0)`) to `None`; cast `viewRadians` to float; use orjson and a pickle/parquet cache keyed by file mtime so restarts stay fast (193 MB).
+- Team mapping: match filename score to `teams[].roundsWon` to map team name → Red/Blue; handle ties by player rosters; log unmapped matches rather than failing.
+- `catalog.py`: load `PublicContentCatalog.json`; agent/weapon name lookups with explicit "unknown" fallback and `inferred` flag; map codename → public name; asset URL helpers; mount `public_catalog/` as static `/assets`.
+- `coords.py`: game→minimap transform (swapped axes) normalized to 0..1; discard outliers; per-map `has_minimap`. Validate by plotting plant positions on 2-3 minimaps (saved check image in `docs/`).
+- `metrics/`: implement SPEC.md functions once (HS%, ADR, first kill/death, trade, buy type, clutch, side per round with halftime/overtime).
+- `routers/meta.py`: `/api/meta` (KPIs, tournaments, maps, date range), `/api/search`, `/api/leaderboards`, `/api/matches` (list with filters). Home screen data.
+- Hand-off milestone: **Wed 21 12:00** real `Store` + metrics merged; B/C/D swap the mini test store for the real one with no code changes.
+
+### Stream B: Players and teams (backend + screens)
+- `analytics/players.py`: K/D, assists, HS%, ADR, rounds, opening-duel stats, weapon performance by buy type, per-map kills/deaths, agents played + favorite, clutches and multi-kills.
+- `analytics/roles.py`: behavioral role scores (Entry, Lurker, Suporte, Anchor, Flex; IGL inferred/omitted) using first-duel share, distance to teammates (`playerLocations`), assists + ability casts, defense-side site presence, agent variety; returns top-2 roles + confidence + the signals used. Calibrate on the data and sanity-check with known players.
+- `analytics/teams.py`: roster, record, per-match and per-map performance, attack/defense split, economy, plant-site tendencies, role composition.
+- Routers: `/api/players/{puuid}`, `/api/teams`, `/api/teams/{name}`.
+- Pages: `PlayerPage`, `TeamPage` (charts via Recharts or similar, `InsightList` for strengths/weaknesses/tips).
+- Insights consumption: until D ships, return B's own `strengths/weaknesses` as empty list; D's engine is called by the router once available (single function `insights.engine.for_player(stats)` / `for_team(stats)`; the signature is frozen in Phase 0 and D provides a stub returning `[]` on Day 1).
+
+### Stream C: Maps and matches (backend + screens + the minimap component)
+- `analytics/maps.py`: most used agents/weapons, attack vs defense win rate classification, per-site plant/defuse/retake stats.
+- `analytics/heatmaps.py`: kill/death grids per side; **blind-spot layers**: (a) dangerous zones (deaths ≫ kills per cell), (b) uncovered zones (low occupancy/look coverage from `playerLocations` + `viewRadians` yet later enemy kills originate there). Output normalized grids (e.g. 64×64) + plant points.
+- `analytics/matches.py`: match report (score, round timeline with side/plant/defuse/ceremony/economy, scoreboard, MVP), match-level improvement suggestions via D's `engine.for_match` stub.
+- `analytics/replay.py`: per-kill payload: killer, victim, trajectory, positions + view angles of alive players, weapon, round time.
+- Routers: `/api/maps`, `/api/maps/{name}`, `/api/maps/{name}/heatmap`, `/api/matches/{id}`, `/api/matches/{id}/kills`.
+- `MinimapCanvas.tsx`: canvas component with layered rendering (heat grid, points, killer→victim trajectories, view cones, plant markers), pan/zoom, round/player/team filters; graceful state for Abyss/Summit (no minimap). Props frozen in Phase 0 so B (player kills per map) and D (enemy position hints) can reuse it later.
+- Pages: `MapPage`, `MatchPage` (scoreboard, round timeline, kill replay).
+
+### Stream D: Insight engine + Action Plan (backend + screen)
+- `insights/engine.py` + `rules_player.py`, `rules_team.py`, `rules_match.py`: declarative rules `condition(stats) → Insight` with threshold config in one `thresholds.py`; every insight carries evidence + sample size, `low_sample` flag below thresholds; texts in pt-BR from templates. Works from the **stats dicts** B/C return (schema frozen), so D never touches raw JSON and can develop against fixtures.
+- `action_plan.py`: given Team A, Team B, map, perspective: agent recommendations (team history on the map + opponent tendencies), per-round-type plan (pistol, eco, force, full buy; attack/defense): weapon recommendation, strategy, enemy weak points, probable enemy strategy (site preference, early timing, buy pattern, common positions). Reads team/map aggregates through the stats functions from B and C (via the frozen `schemas`), with fixtures until they land.
+- `llm.py` (optional, last): Claude API call that rewrites the structured plan as narrative; feature-flagged by env var, strictly given the structured facts, with a post-check that no number in the output is absent from the input; always falls back to the rules output.
+- Router `/api/plan` (POST), page `ActionPlanPage` (team A/B/map pickers, perspective toggle, per-round tabs, evidence badges).
+- D owns `thresholds.py`; B/C do not edit it.
+
+### Stream E: Frontend shell, design system and Home
+- App shell: routing, layout, nav, global `FilterBar` (tournament, map, date range) in a context persisted to URL/localStorage, API client with react-query, error/loading/empty states, mock toggle.
+- Design system components listed in Phase 0, final styling (angular dark/red VALORANT-inspired theme, original assets only), icons from catalog, responsive laptop layout.
+- `HomePage`: global search (debounced), KPI cards, leaderboards, tournament filter + recent matches.
+- Owns the shared TS types generated from the contract (`frontend/src/api/types.ts`); regenerate when `schemas/` changes.
+- After Home: UX polish pass over all pages (consistency, copy in pt-BR, accessibility basics), and the Playwright smoke tests.
+
+### Stream F (can be 1-2 people, mostly human): Demo, pitch, QA
+- Writes the pitch script around the judging criteria (Innovation, Impact, Analysis quality, Feasibility, Usability, Prototype/Pitch) and the 5-minute storyline: one concrete scenario per audience (coach prep with Action Plan, player review, post-match report with the kill replay).
+- Picks 2-3 showcase entities (teams, a match with a great kill-replay, a map with a clear blind spot) and verifies they render well; reports bugs to owners.
+- Slides, recording, upload as unlisted YouTube, submission form with team names. Starts the Discord ticket to confirm catalog usage is allowed (Day 1).
+- Runs the end-to-end checklist (Verification below) at each checkpoint.
+
+## Timeline and checkpoints
+| When | Goal |
+|---|---|
+| Tue 20 (rest of day) | Phase 0 merged; streams start; catalog-rules ticket sent |
+| Wed 21 12:00 | **CP1:** real Store + metrics + `/api/meta` merged; each stream has its page rendering from fixtures |
+| Wed 21 end | Each stream: first real endpoint wired (B player, C match report, D engine v1, E shell + Home) |
+| Thu 22 12:00 | **CP2:** all 6 pages on real data (even if rough); mocks off by default |
+| Thu 22 end | Feature-complete: blind spots, replay, roles, Action Plan; D's optional LLM stays behind flag |
+| Fri 23 12:00 | **Code freeze for features**; only bug fixes/polish; demo dataset picked |
+| Fri 23 17:00 | Pitch recorded (needs a stable build); fallback: screen recording from the Thu build |
+| Fri 23 22:00 | Submitted (1h40 buffer before 23h59) |
+
+## Dependency map and mitigations
+- **A → B, C, D (data/metrics):** mitigated by the schema doc + mini test store; A's core lands by CP1.
+- **C → B, D (MinimapCanvas, heatmap helpers):** props/API frozen in Phase 0; B and D only use it for optional features (player kills per map, enemy positions) after CP2.
+- **B, C → D (stats for insights/plan):** D codes against frozen stats schemas + fixtures; engine entry points stubbed on Day 1.
+- **Everything → E (types/components):** E publishes component stubs in Phase 0; styling changes never alter props.
+- Shared files (`main.py` router registration, `package.json`, `requirements.txt`): all owned by A; others request additions via a one-line PR, merged within the hour.
+
+## Risks
+- **Team/colour mapping errors** (names only in filenames): A tests on every file, logs unmapped ones; fallback by roster overlap.
+- **Coordinate transform unverified:** validated visually on Day 1; if wrong, only `coords.py` changes.
+- **Abyss/Summit lack minimaps:** explicit `has_minimap` flag drives UI fallbacks from the start.
+- **Role heuristics subjective:** show top-2 + signals; present as "behavioral" in the pitch.
+- **Low sample sizes:** `low_sample` flag is part of the contract so no screen can forget it.
+- **Startup time with 193 MB:** disk cache; measure on Day 1; if > 20 s, precompute aggregates.
+- **Scope vs 3.5 days:** if behind at CP2, cut order: (1) LLM polish, (2) uncovered-zones blind-spot layer, (3) per-round plan depth, (4) IGL role. Core of every screen stays.
+
+## Verification
+- **Backend:** `pytest` per module (filename parser over all files in `data/`, metrics vs hand-computed values from one match, role scores sanity, heatmap shapes, insight evidence always present); a contract test that every fixture validates against its Pydantic model and every router returns a body that validates too.
+- **Cross-check:** total kills/rounds/players from the Store equals the numbers in `data-report.md` (336 maps, 6,618 rounds, 46,753 kills, 413 players) when the full dataset is present.
+- **Frontend:** `tsc` + lint + Playwright smoke test visiting all 6 routes with mocks, then with the real backend (`make dev`), asserting no console errors and key elements visible.
+- **Visual check:** plant markers on minimap for Ascent/Lotus/Haven/Split; kill replay on one known match.
+- **End-to-end demo script (Stream F, run at each checkpoint):** Home search → Player → Team → Map (toggle blind-spot layers) → Match Report (open a kill replay) → Action Plan (Team A vs B + map, flip perspective).
+- **Rules compliance:** no external data sources; no Riot assets beyond the supplied catalog; LLM off by default and never invents numbers.
