@@ -25,8 +25,11 @@ export interface MinimapProps {
   points?: MinimapPoint[];
   /** Killer -> victim trajectories. `dashed` / `color` are optional additions (Stream E). */
   lines?: Array<{ from: Point; to: Point; team?: "a" | "b"; dashed?: boolean; color?: string }>;
-  /** Routes (e.g. probable enemy path in the Action Plan). */
-  routes?: Array<{ points: Point[]; color?: string }>;
+  /** Routes (e.g. probable enemy path in the Action Plan). Stream D additions: arrow head, dashes, width and a label
+   *  (`leader`: the label goes to a tidy column on the right joined to the route start by a thin line). */
+  routes?: Array<{ points: Point[]; color?: string; arrow?: boolean; dashed?: boolean; width?: number; label?: string; leader?: boolean }>;
+  /** Dashed translucent boxes with a label (Action Plan zones): `box` = [x0, y0, x1, y1] in 0..1. */
+  boxes?: Array<{ box: number[]; color: string; label?: string; below?: boolean }>;
   onPointClick?: (index: number) => void;
   /** Optional (Stream C): draws dashed, labelled boxes ("DESCOBERTA n") around the strongest blobs of this layer. */
   zoneLayer?: HeatLayer | null;
@@ -62,7 +65,36 @@ const TEAM_A = "#2ee6d0"; // Figma Match Report: team A cyan, team B amber
 const TEAM_B = "#ffb547";
 const HEAT_RGB = { red: "255,59,82", cyan: "46,230,208", amber: "255,181,71", green: "61,220,132", violet: "160,123,255" } as const;
 
-export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines = [], routes = [], zoneLayer = null }: MinimapProps) {
+/** Small dark label with a coloured outline (readable over any part of the minimap). Returns its width. */
+function pill(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string): number {
+  ctx.font = "500 10px Inter, sans-serif";
+  const w = ctx.measureText(text).width + 12, h = 16;
+  ctx.fillStyle = "rgba(7,9,13,0.82)";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 3);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x + 6, y + h / 2 + 0.5);
+  return w;
+}
+
+function arrowHead(ctx: CanvasRenderingContext2D, a: Point, b: Point, size: number, color: string) {
+  const ang = Math.atan2(b.y - a.y, b.x - a.x);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(b.x * size, b.y * size);
+  ctx.lineTo(b.x * size - 11 * Math.cos(ang - 0.45), b.y * size - 11 * Math.sin(ang - 0.45));
+  ctx.lineTo(b.x * size - 11 * Math.cos(ang + 0.45), b.y * size - 11 * Math.sin(ang + 0.45));
+  ctx.closePath();
+  ctx.fill();
+}
+
+export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines = [], routes = [], boxes = [], zoneLayer = null }: MinimapProps) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -121,13 +153,59 @@ export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines =
       ctx.setLineDash([]);
       ctx.lineWidth = 1;
     }
+    for (const b of boxes) {  // zones under the routes
+      const [x0, y0, x1, y1] = b.box;
+      ctx.fillStyle = `${b.color}1f`;
+      ctx.fillRect(x0 * size, y0 * size, (x1 - x0) * size, (y1 - y0) * size);
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(x0 * size, y0 * size, (x1 - x0) * size, (y1 - y0) * size);
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1;
+    }
     for (const r of routes) {
-      ctx.strokeStyle = r.color ?? "#ffb547";
-      ctx.lineWidth = 2;
+      const color = r.color ?? "#ffb547";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = r.width ?? 2;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.setLineDash(r.dashed ? [7, 5] : []);
       ctx.beginPath();
       r.points.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x * size, p.y * size) : ctx.lineTo(p.x * size, p.y * size)));
       ctx.stroke();
+      ctx.setLineDash([]);
       ctx.lineWidth = 1;
+      if (r.arrow && r.points.length > 1) arrowHead(ctx, r.points[r.points.length - 2], r.points[r.points.length - 1], size, color);
+    }
+    // route labels: leader labels share a column on the right of the arrow starts, the others sit next to their start
+    const leaders = routes.filter((r) => r.label && r.leader && r.points.length).sort((a, b) => a.points[0].y - b.points[0].y);
+    if (leaders.length) {
+      ctx.font = "500 10px Inter, sans-serif";
+      const widest = Math.max(...leaders.map((r) => ctx.measureText(r.label!).width + 12));
+      const colX = Math.min(Math.max(...leaders.map((r) => r.points[0].x * size)) + 50, size - widest - 4);
+      let y = Math.max(4, leaders[0].points[0].y * size - 30);
+      for (const r of leaders) {
+        const color = r.color ?? "#2ee6d0";
+        ctx.strokeStyle = `${color}8c`;
+        ctx.beginPath();
+        ctx.moveTo(r.points[0].x * size, r.points[0].y * size);
+        ctx.lineTo(colX, y + 8);
+        ctx.stroke();
+        pill(ctx, r.label!, colX, y, color);
+        y += 24;
+      }
+    }
+    for (const r of routes) {
+      if (r.label && !r.leader && r.points.length) pill(ctx, r.label, r.points[0].x * size + 6, Math.max(2, r.points[0].y * size - 22), r.color ?? "#ffb547");
+    }
+    for (const b of boxes) {
+      if (b.label) {
+        ctx.font = "500 10px Inter, sans-serif";
+        const w = ctx.measureText(b.label).width + 12;
+        const y = b.below ? Math.min(b.box[3] * size + 4, size - 18) : Math.max(2, b.box[1] * size - 22);
+        pill(ctx, b.label, Math.max(2, Math.min(b.box[0] * size, size - w - 2)), y, b.color);
+      }
     }
     for (const p of points) {
       const x = p.point.x * size, y = p.point.y * size;
@@ -183,7 +261,7 @@ export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines =
         ctx.fillText(p.label, x + 14, y + 4);
       }
     }
-  }, [heat, points, lines, routes, size, zoneLayer]);
+  }, [heat, points, lines, routes, boxes, size, zoneLayer]);
 
   if (!map.has_minimap || !map.minimap_url) {
     return (

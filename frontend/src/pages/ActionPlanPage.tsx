@@ -8,6 +8,7 @@ import { MinimapCanvas } from "@/components/map/MinimapCanvas";
 import { AgentIcon, MapIcon, WeaponIcon } from "@/components/ui/AgentIcon";
 import { Badge, type Tone } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { InsightCard } from "@/components/ui/InsightList";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
@@ -164,6 +165,102 @@ function RoundDetail({ plan, round, prev }: { plan: PlanResponse; round: RoundPl
   );
 }
 
+const C = { cyan: "#2ee6d0", amber: "#ffb547", green: "#3ddc84", red: "#ff3b52", violet: "#a07bff" };
+const ZONE_COLOR = { enemy_weak: C.green, danger: C.red, uncovered: C.cyan } as const;
+
+/** Figma "Panel / Mapa tático do round" (32:432): the round's plan drawn on the minimap from real positions. */
+function RoundMapPanel({ plan, round }: { plan: PlanResponse; round: RoundPlan }) {
+  const [show, setShow] = useState({ mine: true, enemy: true, zones: true });
+  const mp = round.map_plan;
+  const attack = round.side === "attack";
+  const routes = useMemo(() => (mp?.routes ?? []).filter((r) => (r.kind === "enemy" ? show.enemy : show.mine)).map((r) => ({
+    points: r.points, arrow: true, dashed: r.kind !== "attack", width: r.role === "entry" ? 4 : 2.5,
+    color: r.kind === "attack" ? C.cyan : r.kind === "retake" ? C.violet : C.amber, leader: r.kind === "attack",
+    label: r.kind === "enemy" ? `${attack ? "Defesa" : "Ataque"} provável do inimigo · n = ${r.evidence.sample_size}` : r.kind === "attack" ? r.label : undefined,
+  })), [mp, show.mine, show.enemy, attack]);
+  const points = useMemo(() => (mp?.markers ?? []).filter((m) => m.kind === "site" || show.mine).map((m) => (
+    m.kind === "site" ? { point: m.point, kind: "plant" as const, label: m.label } : { point: m.point, kind: "player" as const, team: "a" as const, label: m.label }
+  )), [mp, show.mine]);
+  const boxes = useMemo(() => (show.zones ? mp?.zones ?? [] : []).map((z) => ({ box: z.box, color: ZONE_COLOR[z.kind], label: z.label, below: z.kind === "uncovered" })), [mp, show.zones]);
+  const mine = (mp?.routes ?? []).filter((r) => r.kind !== "enemy");
+  const holds = (mp?.markers ?? []).filter((m) => m.kind === "hold");
+  const retakeSite = round.enemy_probable_strategy.site;  // where the enemy is expected to plant: the retake arrows go there
+  const empty = !mp || (!mp.routes.length && !mp.zones.length && !holds.length);
+  type Row = [string, string, "line" | "dash" | "box" | "square"];
+  const own: Row[] = attack
+    ? [["Seta ciano: caminho típico de cada jogador do time (do início ao plante)", C.cyan, "line"]]
+    : [["Círculo: posição típica de cada defensor nos primeiros 25 s", C.cyan, "square"], ["Tracejado violeta: retake do anchor/suporte até o plante", C.violet, "dash"]];
+  const legend: Row[] = [
+    ...own,
+    ["Tracejado âmbar: rota provável do inimigo", C.amber, "dash"],
+    ["Caixa verde: onde o inimigo perde as aberturas · vermelha: zona perigosa · ciano: zona descoberta", C.green, "box"],
+    ["Quadrado âmbar: bombsite", C.amber, "square"],
+  ];
+  return (
+    <Panel
+      title="Mapa tático do round"
+      subtitle={`Round ${round.number} · ${SIDE_PT[round.side]}${round.strategy.site ? ` · ${attack ? "alvo" : "reforço no"} site ${round.strategy.site}` : ""}${!attack && retakeSite && retakeSite !== round.strategy.site ? ` · inimigo provável no ${retakeSite}` : ""}: caminhos típicos calculados de posições reais (cada seta mostra a amostra)`}
+      aside={
+        <div className="flex gap-2">
+          {([["mine", "Meu plano"], ["enemy", "Inimigo"], ["zones", "Zonas"]] as const).map(([k, l]) => (
+            <FilterChip key={k} on={show[k]} onClick={() => setShow((s) => ({ ...s, [k]: !s[k] }))}>{l}</FilterChip>
+          ))}
+        </div>
+      }
+    >
+      <div className="flex items-start gap-6">
+        <MinimapCanvas map={plan.map} size={540} routes={routes} points={points} boxes={boxes} />
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {empty && <p className="text-sm text-fg-muted">Sem dados de posição suficientes para desenhar este round{mp?.note_pt ? `: ${mp.note_pt}` : "."}</p>}
+          {!empty && (
+            <>
+              {mp?.note_pt && <p className="text-xs leading-4 text-amber">{mp.note_pt}</p>}
+              <p className={label}>Legenda</p>
+              <div className="flex flex-col gap-3">
+                {legend.map(([txt, color, kind]) => (
+                  <div key={txt} className="flex items-center gap-[10px] text-xs text-fg-secondary">
+                    <span className="flex w-7 shrink-0 items-center justify-center">
+                      {kind === "line" && <span className="h-[3px] w-7" style={{ background: color }} />}
+                      {kind === "dash" && <span className="w-7 border-t-[2.5px] border-dashed" style={{ borderColor: color }} />}
+                      {kind === "box" && <span className="h-[10px] w-7 border-[1.5px] border-dashed" style={{ borderColor: color, background: `${color}26` }} />}
+                      {kind === "square" && <span className="size-[10px] rounded-[2px]" style={{ background: color }} />}
+                    </span>
+                    {txt}
+                  </div>
+                ))}
+              </div>
+              <p className={label}>{attack ? "Quem faz o quê neste round" : "Posições e retake neste round"}</p>
+              <div className="flex flex-col gap-2">
+                {(attack ? mine : holds.map((m) => {
+                  const rt = mine.find((r) => r.kind === "retake" && r.handle === m.handle);  // anchors/support also have a retake arrow
+                  return { label: rt ? `${m.label} · retake ${retakeSite ?? ""}`.trim() : m.label, handle: m.handle, evidence: rt?.evidence ?? null, t0_s: null, t1_s: null };
+                })).map((r, i) => {
+                  const why = round.strategy.steps_pt.find((s) => r.handle && s.startsWith(r.handle));
+                  const ev = r.evidence;
+                  return (
+                    <div key={`${r.label}-${i}`} className="rounded-sm border border-border bg-surface-raised/50 px-3 py-2">
+                      <p className="text-[13px] font-medium text-fg">{r.label}</p>
+                      {why && <p className="text-[11px] leading-[14px] text-fg-secondary">{why}</p>}
+                      {ev && (
+                        <p className="font-mono text-[10px] text-fg-muted">
+                          n = {ev.sample_size} posições{r.t0_s != null && r.t1_s != null ? ` · ${r.t0_s}–${r.t1_s} s` : ""}{ev.low_sample ? " ⚠" : ""}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] leading-[14px] text-fg-muted">
+                Cada caminho junta os centros das posições dos jogadores por faixa de tempo (0–20, 20–40 e 40+ s), medidas nos momentos de abate dos rounds do time no mapa. São jogadas típicas, não prescrições; não há dados de utilitários.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 export default function ActionPlanPage() {
   const [params] = useSearchParams();
   const { data: meta } = useMeta();
@@ -295,6 +392,7 @@ export default function ActionPlanPage() {
           </Panel>
 
           <RoundDetail plan={data} round={round} prev={rounds.find((r) => r.number === round.number - 1)} />
+          <RoundMapPanel plan={data} round={round} />
 
           <Panel title="Plano completo" subtitle="Um registro por round · base para leitura rápida e exportação">
             <DataTable

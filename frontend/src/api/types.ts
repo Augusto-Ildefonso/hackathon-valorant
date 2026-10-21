@@ -146,10 +146,19 @@ export interface RoundStrategy { summary_pt: string; site: Site | null; timing: 
 export interface EnemyMove { summary_pt: string; site: Site | null; route: Point[]; evidence: Stat }
 export interface ContingencyOutcome { round_type: RoundType; summary_pt: string }
 export interface Contingency { if_previous_won: ContingencyOutcome; if_previous_lost: ContingencyOutcome }
+// Stream D (additive): what to draw on the round's minimap, from real position snapshots
+export interface PlanRoute {
+  kind: "attack" | "retake" | "enemy"; label: string; role: string | null; agent: AgentRef | null; handle: string | null;
+  points: Point[]; t0_s: number | null; t1_s: number | null; evidence: Stat;
+}
+export interface PlanZone { box: number[]; kind: "enemy_weak" | "danger" | "uncovered"; label: string; evidence: Stat }
+export interface PlanMarker { point: Point; kind: "site" | "hold"; label: string; handle: string | null; agent: AgentRef | null }
+export interface MapPlan { routes: PlanRoute[]; zones: PlanZone[]; markers: PlanMarker[]; note_pt: string | null }
 export interface RoundPlan {
   number: number; half: 1 | 2; side: Side; round_type: RoundType; base_scenario_result: "win" | "loss";
   win_probability: Stat; projected_economy: ProjectedEconomy; buy: BuyItem[]; strategy: RoundStrategy;
   enemy_weak_points: Insight[]; enemy_probable_strategy: EnemyMove; contingency: Contingency; insights: Insight[];
+  map_plan?: MapPlan | null;
 }
 export interface PlanResponse {
   team_a: TeamRef; team_b: TeamRef; perspective: "a" | "b"; map: MapRef; rounds_per_half: number;
