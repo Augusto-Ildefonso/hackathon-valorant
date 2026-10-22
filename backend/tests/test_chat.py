@@ -1,11 +1,14 @@
 """Chat (Stream G): rule-based understanding over real names, blocks from the existing engines, dashboard links."""
+import json
 import re
 from urllib.parse import parse_qs, unquote, urlparse
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.chat.llm_chat import summarize, understand_llm
 from app.chat.understand import names, understand_rules
+from app.insights import llm
 from app.main import app
 from app.schemas import ChatResponse
 
@@ -102,6 +105,74 @@ def test_every_dashboard_path_points_at_an_existing_route(nm):
     for s in (f"jogador {nm.players[0][1]}", f"time {nm.teams[0]}", f"mapa {nm.maps[0]}", f"última partida do {nm.teams[0]}", "resumo do campeonato"):
         d = ask(s).dashboard
         assert d and ok.match(d.path), (s, d)
+
+
+class _Resp:
+    status_code = 200
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {"candidates": [{"content": {"parts": [{"text": json.dumps(self.payload)}]}}]}
+
+
+class _Fake:
+    def __init__(self, payload):
+        self.payload, self.calls = payload, 0
+
+    def post(self, url, headers=None, json=None):  # noqa: A002
+        self.calls += 1
+        return _Resp(self.payload)
+
+
+@pytest.fixture
+def llm_on(monkeypatch, tmp_path):
+    monkeypatch.delenv("VAVAGYM_LLM_MODEL", raising=False)
+    monkeypatch.setenv("VAVAGYM_LLM", "1")
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    monkeypatch.setattr(llm, "CACHE_DIR", tmp_path / "llm")
+
+
+def test_llm_understanding_resolves_names_and_rejects_made_up_ones(nm, llm_on):
+    team = nm.teams[0]
+    u = understand_llm("quero saber como anda aquele time", None, _Fake({"intent": "team", "team": team.lower()}))
+    assert u.intent == "team" and u.teams == [team] and u.source == "llm"
+    assert understand_llm("x", None, _Fake({"intent": "team", "team": "Time Que Nao Existe 123"})) is None
+    assert understand_llm("x", None, _Fake({"intent": "plan", "team": None})) is None  # a plan needs a team
+    assert understand_llm("x", None, _Fake({"intent": "dance"})) is None
+
+
+def test_a_missing_name_is_still_reported_when_the_model_says_help(monkeypatch, llm_on):
+    monkeypatch.setattr("app.routers.chat.understand_llm", lambda *a, **k: understand_llm("x", None, _Fake({"intent": "help"})))
+    r = ask("jogador xyzabcq")
+    assert r.intent == "unknown" and r.blocks[0].type == "warning" and "xyzabcq" in r.blocks[0].text
+
+
+def test_llm_is_not_called_when_it_is_off(nm):
+    fake = _Fake({"intent": "team", "team": nm.teams[0]})
+    assert understand_llm("qualquer coisa", None, fake) is None and fake.calls == 0
+    assert ask(f"time {nm.teams[0]}").can_summarize is False
+
+
+def test_summary_passes_only_checked_text(nm, llm_on, monkeypatch, tmp_path):
+    r = ask(f"time {nm.teams[0]}")
+    good = "O time se apoia no ataque e sofre em um mapa específico, o que pede cuidado na escolha do mapa."
+    assert summarize(r.intent, r.blocks, _Fake({"resumo": good}))[0] == good
+    for i, bad in enumerate(("O time vence 61% dos rounds.", "Você deve evitar esse mapa.", "O time soma 9999 rounds de experiência.", "O time precisa de smokes melhores no site.")):
+        monkeypatch.setattr(llm, "CACHE_DIR", tmp_path / f"fresh{i}")  # the disk cache would replay the first answer
+        assert summarize(r.intent, r.blocks, _Fake({"resumo": bad}))[0] is None  # statistic / reader address / invented number
+    assert summarize("help", r.blocks, _Fake({"resumo": good}))[0] is None  # intents without data are not summarised
+
+
+def test_summary_endpoint_flags_availability_and_degrades_without_text(nm, llm_on):
+    r = ask(f"time {nm.teams[0]}")
+    assert r.can_summarize is True
+    out = client.post("/api/chat/summary", json={"intent": r.intent, "blocks": [b.model_dump() for b in r.blocks]})
+    assert out.status_code == 200 and set(out.json()) == {"text", "note"}
 
 
 def test_understanding_is_deterministic_and_needs_no_network(nm):

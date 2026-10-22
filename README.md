@@ -86,6 +86,7 @@ When enabled, an **"Análise por IA"** toggle appears on the Player, Team, Map a
 - It receives **fact packets with ids** and must cite them; the code validates ids, allowed kinds, team ownership and that **every number in the text equals a cited fact's value, reference or sample size**.
 - A **coherence guard** rejects a "strength" on a fact that is not top-band, a "weakness" in the wrong direction, and low-sample facts used as strengths/weaknesses.
 - Anything that fails falls back to the rule-based text and is reported in the notes. Answers are cached on disk.
+- **Chat:** the answers always come from the engines; with a key the model only (a) understands free-form sentences the offline keyword/fuzzy rules cannot place (every name it returns is re-checked against the dataset) and (b) writes an optional short interpretive paragraph, shown only if it passes the same number and tone checks and does not talk about utility (the dataset has none).
 - In a measured comparison on 14 entities, the AI produced 93 insights vs 61 from rules and 25 strategies vs 4, but takes 20 s to 2 min and sometimes over-claims; hence the hybrid design (rules by default, AI on demand). Details: [`.claude/docs/insights-comparison.md`](.claude/docs/insights-comparison.md).
 
 ---

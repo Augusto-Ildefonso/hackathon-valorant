@@ -26,7 +26,7 @@ Fallbacks if one fails on the day: Haven with Azure Bears Black x Totale UMC (10
 | Time | Scene | What to say (pt-BR, short) | Criterion |
 |---|---|---|---|
 | 0:00-0:30 | Title + Home KPIs | "Treinadores têm milhares de números e pouca resposta. O VaváGym usa 336 mapas, 6.618 rounds e 46.753 abates reais para dizer o que melhorar e por quê." | Impacto |
-| 0:30-1:00 | Home: search "chadu" → Player | "Qualquer jogador, time, mapa ou partida. É imparcial: não existe 'nosso time'. Cada ponto forte ou fraco mostra o número, a mediana do campeonato e a amostra; amostra pequena aparece com aviso." | Qualidade da análise |
+| 0:30-1:00 | Início (chat): type "informações do jogador chadu#2007" → readable answer → "Ver no dashboard" → Player (the chat is optional; the sidebar and the global search still work) | "Qualquer jogador, time, mapa ou partida. É imparcial: não existe 'nosso time'. Cada ponto forte ou fraco mostra o número, a mediana do campeonato e a amostra; amostra pequena aparece com aviso." | Qualidade da análise |
 | 1:00-1:40 | Team (UFMT Turuna) | "Para o time: pontos fortes, fraquezas, papéis comportamentais e recomendações, todas com evidência." | Análise / Usabilidade |
 | 1:40-2:30 | Map Ascent: toggle zonas perigosas / descobertas | "Aqui o mapa mostra onde os abates acontecem e onde ninguém está olhando: 61 de 123 abates saíram do meio sem cobertura." | Inovação |
 | 2:30-3:10 | Match report: scoreboard, timeline, click round → replay | "No pós-jogo, a linha do tempo leva ao replay de abates no minimapa, com direção de visão." | Protótipo |

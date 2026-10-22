@@ -37,6 +37,7 @@ Frontend types: `frontend/src/api/types.ts` mirrors the models (Stream E keeps t
 | POST `/api/plan` | body `PlanRequest` (`use_llm` optional) | `PlanResponse` (`text_source`, `notes_pt` additive) | D |
 | GET `/api/plan/capabilities` | | `PlanCapabilities` `{llm, model}` | D |
 | POST `/api/chat` | body `ChatRequest` `{message, context?}` | `ChatResponse` `{intent, source, context, blocks[], dashboard{label,path}\|null, suggestions?, note?}`; blocks: `text`, `warning`, `stats`, `insights`, `table`, `choices`, `plan_summary`. Calls the same engines as the other endpoints; the client sends the returned `context` back for follow-ups | G |
+| POST `/api/chat/summary` | body `{intent, blocks}` (the blocks of an answer) | `{text\|null, note\|null}`: optional AI paragraph (only when `can_summarize`); `text` is null when the AI is off, fails or the text does not pass the number/tone checks | G |
 | POST `/api/plan/report` | body `PlanRequest` (`use_llm` optional) | `application/pdf` attachment; headers `X-Report-Source` (`llm`\|`rules`) and `X-Report-Note` | D |
 
 Additive (Stream D): `GET /api/players/{id}`, `/api/teams/{name}`, `/api/maps/{name}` and `/api/matches/{id}` take `insights=rules|llm` (default `rules`) and return `insights_source` (`rules` | `llm`). With `llm` the model picks and words the insights from a fact packet and the answer is validated against it; when the LLM is off, fails or returns nothing the response is the rule-based one and says `rules`.

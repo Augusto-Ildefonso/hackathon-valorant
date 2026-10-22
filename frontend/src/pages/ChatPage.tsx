@@ -9,7 +9,7 @@ import { Blocks } from "@/components/chat/Blocks";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { PageHeader } from "@/components/ui/PageHeader";
 
-type Msg = { id: number; role: "user"; text: string } | { id: number; role: "bot"; response?: ChatResponse; error?: string };
+type Msg = { id: number; role: "user"; text: string } | { id: number; role: "bot"; response?: ChatResponse; error?: string; summary?: string; summarizing?: boolean };
 const KEY = "vavagym.chat";
 
 function load(): { msgs: Msg[]; ctx: ChatContext } {
@@ -58,7 +58,12 @@ export default function ChatPage() {
     try {
       const r = await api<ChatResponse>("/api/chat", { body: { message, context: ctx } });
       setCtx(r.context);
-      setMsgs((m) => [...m, { id: id + 1, role: "bot", response: r }]);
+      setMsgs((m) => [...m, { id: id + 1, role: "bot", response: r, summarizing: r.can_summarize }]);
+      if (r.can_summarize) {  // the answer is already on screen; the optional AI paragraph arrives when (and if) it is ready
+        api<{ text: string | null; note: string | null }>("/api/chat/summary", { body: { intent: r.intent, blocks: r.blocks } })
+          .then((s) => setMsgs((m) => m.map((x) => (x.id === id + 1 && x.role === "bot" ? { ...x, summary: s.text ?? undefined, summarizing: false } : x))))
+          .catch(() => setMsgs((m) => m.map((x) => (x.id === id + 1 && x.role === "bot" ? { ...x, summarizing: false } : x))));
+      }
     } catch (e) {
       setMsgs((m) => [...m, { id: id + 1, role: "bot", error: String(e) }]);
     } finally {
@@ -89,6 +94,12 @@ export default function ChatPage() {
             <div key={m.id} className="flex flex-col gap-4 rounded-md border border-border bg-surface p-5">
               {m.error ? <p role="alert" className="text-sm text-accent">Não consegui responder agora: {m.error}</p> : m.response && (
                 <>
+                  {(m.summary || m.summarizing) && (
+                    <p className="rounded-sm border border-border bg-surface-raised px-4 py-3 text-sm leading-6 text-fg">
+                      <span className="mr-2 rounded-sm bg-tint-violet px-2 text-[11px] font-medium leading-[14px] text-violet" title="Escrito por IA a partir dos fatos abaixo">IA</span>
+                      {m.summary ?? <span className="text-fg-muted">Escrevendo o resumo…</span>}
+                    </p>
+                  )}
                   <Blocks blocks={m.response.blocks} onSend={send} />
                   {m.response.note && <p className="text-xs text-fg-muted">{m.response.note}</p>}
                   {m.response.dashboard && (

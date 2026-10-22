@@ -103,3 +103,14 @@ class ChatResponse(Model):
     dashboard: DashboardLink | None = None
     suggestions: list[str] | None = None  # optional follow-up shortcuts
     note: str | None = None
+    can_summarize: bool = False  # the optional AI summary is available: the client may ask POST /api/chat/summary
+
+
+class SummaryRequest(Model):
+    intent: Intent
+    blocks: list[Block]
+
+
+class SummaryResponse(Model):
+    text: str | None = None  # None: no summary (AI off, failed, or the text did not pass the checks)
+    note: str | None = None
