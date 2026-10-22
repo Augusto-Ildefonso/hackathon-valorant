@@ -212,6 +212,7 @@ export default function MatchPage() {
         <Link to="/partidas" className="hover:text-fg">Partidas</Link> › {r.team_a.team.name} × {r.team_b.team.name}
       </p>
 
+      <h1 className="sr-only">{r.team_a.team.name} × {r.team_b.team.name} em {r.map.name}</h1>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6 rounded-md border border-border bg-surface px-8 py-6">
         <div className="flex flex-col items-end gap-1">
           <Link to={`/time/${encodeURIComponent(r.team_a.team.name)}`} className="font-display text-[32px] font-bold leading-10 text-fg hover:text-accent">{r.team_a.team.name}</Link>
@@ -233,7 +234,7 @@ export default function MatchPage() {
         </div>
       </div>
 
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
         <Scoreboard r={r} side="a" />
         <Scoreboard r={r} side="b" />
       </div>

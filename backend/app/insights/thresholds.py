@@ -23,7 +23,7 @@ MIN_OPENING_DUELS = 6
 MIN_SHOTS = 60
 MIN_TEAM_ROUNDS = 12
 MIN_TEAM_EVENTS = 6
-MIN_MATCHES_ON_MAP = 2
+MIN_MATCHES_ON_MAP = 3  # two games are not enough to call a map "weak" and tell the team to train it
 MIN_WEAPON_ROUNDS = 20
 
 # How many insights each panel shows

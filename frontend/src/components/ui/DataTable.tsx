@@ -41,6 +41,17 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, emptyText = "N
         <div
           key={rowKey(r)}
           onClick={onRowClick ? () => onRowClick(r) : undefined}
+          // clickable rows behave like buttons for keyboard and screen-reader users
+          {...(onRowClick && {
+            role: "button",
+            tabIndex: 0,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                onRowClick(r);
+              }
+            },
+          })}
           className={`flex items-center gap-3 border-b border-border py-3 text-sm leading-5 ${onRowClick ? "cursor-pointer hover:bg-surface-raised" : ""}`}
         >
           {columns.map((c) => (
