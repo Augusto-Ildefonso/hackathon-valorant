@@ -6,7 +6,7 @@ Built for the **SEMCOMP / AcadArena Hackathon** (delivery 23/10/2026). It analys
 tournaments (Rush Series and Univavá): 6,618 rounds, 46,753 kills and 411 players across 68 teams. The UI is in Portuguese (pt-BR);
 code, API and docs are in English.
 
-![Home](docs/screens/1-home.png)
+![Campeonatos (the former Home, now at /campeonatos)](docs/screens/1-home.png)
 
 ---
 
