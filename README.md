@@ -31,7 +31,7 @@ It is **impartial**: there is no fixed "our team". You pick the entity, and wher
 | **Team** | Record and trend, roster and roles, attack vs defense, economy by round type (pistol, eco, force, full buy), per-map results, recommendations |
 | **Map** | Attack/defense bias, site preference and retake, kill/death heatmaps by side, blind-spot layers, usage of agents |
 | **Match report** | Scoreboard with MVP, round timeline, **kill replay on the minimap** (killer view direction included), per-team improvement suggestions |
-| **Action Plan** | Team A vs Team B on a map → one entry per round: predicted round type, projected economy, buy, strategy, enemy weak points, probable enemy move, contingency if the previous round is won or lost, and a drawn tactical map |
+| **Action Plan** | Team A vs Team B on a map → one entry per round: predicted round type, projected economy, buy, strategy, enemy weak points, probable enemy move, and a contingency if the previous round is won or lost |
 
 <table>
 <tr>
@@ -55,9 +55,8 @@ For a full match (default 12 + 12 rounds, configurable) the planner simulates th
 - **Win probability.** A small logistic model (numpy, ridge-regularised) validated on **93 held-out matches** (log-loss 0.623 vs 0.640 for the empirical baseline: a modest, honest gain). Results of the base scenario are spread by probability instead of always picking the favourite, so the plan does not collapse into one long streak.
 - **Buy.** Per player slot, the weapon and armour the player (or team) actually bought most in that round type.
 - **Strategy.** Candidate plays (target site, timing, early tempo, momentum lines) scored with shrunk empirical rates, with rotation after losses and repeats so the plan has variety.
-- **Enemy.** Weak points from the rule engine applied to the opponent, probable site with evidence, and an enemy route built from real position snapshots.
+- **Enemy.** Weak points from the rule engine applied to the opponent, probable site with evidence, and an enemy route (typical positions from real snapshots) shown on a small minimap.
 - **Contingency.** What the next round type becomes if this one is won vs lost, with probability and sample size.
-- **Drawn plan.** Per-player attack arrows, defender holds and retake arrows, the enemy route and zones (where the enemy opens badly, dangerous and uncovered areas) on the minimap.
 
 **Known limit, stated in the app:** the files contain no utility, lineup or callout data, so plans cover positioning, timing, roles and economy only.
 
@@ -136,7 +135,7 @@ backend/app/
   metrics/      events, players, rounds, objectives (definitions in SPEC.md)
   analytics/    player / team / map / match builders, heatmaps, replay, role model
   insights/     thresholds + baselines, rules_*.py, zones, scouting, plays, action_plan,
-                map_plan, play_model, and the optional llm layer (llm.py, llm_insights.py)
+                play_model, and the optional llm layer (llm.py, llm_insights.py)
   routers/      HTTP endpoints         schemas/   Pydantic contract
 backend/tests/  pytest suite (168 tests: loader, metrics, rules, plan, LLM with a fake client, contract)
 backend/scripts/ calibration, coordinate check, insight comparison, showcase picker

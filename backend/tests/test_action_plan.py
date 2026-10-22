@@ -58,28 +58,6 @@ def test_people_are_named_and_numbers_cite_samples(plan):
     assert any("lineups" in n for n in plan.notes_pt)
 
 
-def _inside(p):
-    return 0 <= p.x <= 1 and 0 <= p.y <= 1
-
-
-def test_map_plan_attack_round_has_player_arrows(plan):
-    mp = plan.rounds[0].map_plan
-    assert mp is not None and {m.label for m in mp.markers if m.kind == "site"} >= {"A", "B"}
-    arrows = [r for r in mp.routes if r.kind == "attack"]
-    assert arrows and all(len(r.points) >= 2 and all(_inside(p) for p in r.points) and r.evidence.sample_size > 0 for r in arrows)
-    assert all(r.handle and r.role for r in arrows)  # every arrow belongs to a named player and role
-    assert any(r.kind == "enemy" for r in mp.routes)
-
-
-def test_map_plan_defense_round_has_holds_and_retakes(plan):
-    mp = next(r.map_plan for r in plan.rounds if r.side == "defense")
-    assert any(m.kind == "hold" and m.handle for m in mp.markers)
-    assert any(r.kind == "retake" and len(r.points) == 2 for r in mp.routes)
-    for z in mp.zones:
-        x0, y0, x1, y1 = z.box
-        assert 0 <= x0 < x1 <= 1 and 0 <= y0 < y1 <= 1 and z.evidence.sample_size > 0
-
-
 def test_base_scenario_mixes_results_and_rotates_sites(plan):
     assert {r.base_scenario_result for r in plan.rounds} == {"win", "loss"}
     attack_sites = {r.strategy.site for r in plan.rounds if r.side == "attack" and r.round_type == "full_buy"}

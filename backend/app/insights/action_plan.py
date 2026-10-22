@@ -28,7 +28,6 @@ from .baselines import Baselines, get_baselines
 from .core import f_num, f_pct, make_insight
 from .map_intel import SiteView, avg_plant_ms, enemy_route, shrink, site_views
 from .play_model import get_win_model
-from .map_plan import build_map_plan
 from .plays import History, plan_round, timing_of
 from .scouting import PlayerScout, assign_roles, scout_team
 
@@ -250,7 +249,6 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
 
     buys_me = _Buys(full, tr, me, [p.puuid for p in my_players])
     route_cache: dict[tuple, tuple] = {}
-    plan_cache: dict = {}  # heavy map_plan pieces shared between rounds
     hist = History()
     acc = 0.5  # error-diffusion accumulator of the base scenario
     ehist: dict = {"site": None, "lost": False}  # where the enemy last attacked and whether it lost that round
@@ -343,14 +341,6 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
             target_site = rp.best.site if rp is not None else max(views.values(), key=lambda v: v.vs_plants or v.map_plants * 0.0001).site
         move = _enemy_move(full, views, en, side_en, target_site, en_plant_ms, map_name, t_en, route_cache, tr)
 
-        try:
-            enemy_pts, enemy_snaps = route_cache.get((side_en, move.site), ([], 0)) if move.site else ([], 0)
-            assigned = [(pl, role) for pl, role, _ in roles]
-            map_site = (rp.best.site if (rp is not None and side_me == "attack") else move.site)
-            mp = build_map_plan(full, me, en, map_name, side_me, map_site, assigned, enemy_pts, enemy_snaps, plan_cache)
-        except Exception:  # drawing is a bonus: the plan never fails because of it
-            mp = None
-
         weak = _relevant_weak_points(team_ins, player_ins, side_me, t_en)
         cont = _contingency(tr, me, sm, n, pistol)
 
@@ -375,8 +365,7 @@ def build_plan(full: Store, req: PlanRequest, base: Baselines | None = None, use
         rounds.append(RoundPlan(
             number=n, half=half, side=side_me, round_type=t_me, base_scenario_result=result, win_probability=wp,
             projected_economy=ProjectedEconomy(team_credits=int(round(cr_me * 5)), enemy_credits=int(round(cr_en * 5)), reasoning_pt=reasoning),
-            buy=buy, strategy=strategy, enemy_weak_points=weak, enemy_probable_strategy=move, contingency=cont, insights=tips,
-            map_plan=mp))
+            buy=buy, strategy=strategy, enemy_weak_points=weak, enemy_probable_strategy=move, contingency=cont, insights=tips))
 
         # ---- advance the base scenario
         won_me = result == "win"

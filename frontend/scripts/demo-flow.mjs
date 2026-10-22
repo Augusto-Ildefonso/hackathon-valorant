@@ -60,14 +60,14 @@ await step("5 Match report: pick a round, kill replay follows", async () => {
   await shot("5-match");
 });
 
-await step("6 Action Plan: round-by-round and map drawing", async () => {
+await step("6 Action Plan: round-by-round detail", async () => {
   await page.goto(`${WEB}/plano?teamA=UFMT%20Turuna&teamB=Azure%20Bears%20Black&map=Haven`, { waitUntil: "domcontentloaded" });
   await see("Linha do tempo da partida", 120000);
   await page.waitForLoadState("networkidle");
   await shot("6-plan");
   await page.getByRole("button", { name: /^R5\b/ }).first().click();
   await page.waitForTimeout(1200);
-  await see("Mapa tático do round");
+  await see("Movimento provável do adversário");
   await shot("6-plan-round");
 });
 
