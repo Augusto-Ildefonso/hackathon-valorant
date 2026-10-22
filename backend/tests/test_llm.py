@@ -99,11 +99,22 @@ def test_dotenv_is_read_without_overriding_real_env(monkeypatch, tmp_path):
 
 
 def test_number_check_is_format_tolerant():
-    assert llm.valid("Vence 61% dos rounds (n = 40).", {"61", "40"}, 12)
-    assert llm.valid("Vence 61,0% dos rounds.", {"61"}, 12)
-    assert not llm.valid("Vence 73% dos rounds.", {"61", "40"}, 12)
+    assert llm.valid("O plante sai por volta de 49 s.", {"49", "40"}, 12)
+    assert llm.valid("O plante sai por volta de 49,0 s.", {"49"}, 12)
+    assert not llm.valid("O plante sai por volta de 73 s.", {"61", "40"}, 12)
     assert llm.valid("Depois do R3, volte ao básico.", set(), 12)
     assert not llm.valid("Depois do R30, volte ao básico.", set(), 12)
+
+
+def test_coach_text_must_not_recite_statistics():
+    assert not llm.valid("O adversário perde 61% das aberturas no site A.", {"61"}, 12)
+    assert not llm.valid("Base de n = 40 rounds mostra fragilidade.", {"40"}, 12)
+    assert not llm.valid("Acima da mediana do campeonato.", set(), 12)
+    assert llm.valid("O adversário é frágil na abertura do site A: vale forçar cedo e plantar por volta de 49 s.", {"49"}, 12)
+
+
+def test_prompt_asks_for_strategy_not_data():
+    assert "NÃO escreva percentuais" in llm.SYSTEM and "quem abre o round" in llm.SYSTEM
 
 
 def _answer_for(plan, **overrides):

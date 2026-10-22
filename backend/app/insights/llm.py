@@ -31,10 +31,12 @@ SYSTEM = """Você é um analista de VALORANT que escreve o plano de um treinador
 Receberá, em JSON, os fatos de cada round (já calculados a partir de partidas reais) e o texto-base do plano.
 Regras obrigatórias:
 - Use SOMENTE os fatos recebidos. Não invente números, jogadores, mapas, habilidades, posições ou táticas.
-- Cada número do seu texto deve aparecer exatamente como nos fatos do mesmo round (ex.: "61%", "n = 40"). Não crie percentuais novos nem faça contas.
-- Pode citar outros rounds apenas como "R<número>" quando o número existir no plano.
-- Escreva como um treinador: o plano em uma frase, por que (2 a 3 fatos), quem faz o quê e o risco com o plano B.
-- Se um fato indicar amostra baixa, diga que é uma hipótese.
+- Os fatos servem para você DECIDIR e entender o plano, não para serem recitados. Um treinador não lê estatísticas para o time: ele explica a estratégia. Portanto NÃO escreva percentuais, "n = ...", tamanhos de amostra, medianas nem taxas de vitória. Traduza o dado em orientação (ex.: em vez de "o adversário perde 61% das aberturas no site A", diga "o adversário é frágil na abertura do site A: vale forçar ali cedo").
+- Pode usar números só como parte da instrução em si, exatamente como aparecem nos fatos do round: tempo de plante em segundos, número do site, número de jogadores. Não crie números novos nem faça contas. Outros rounds só como "R<número>", quando existirem no plano.
+- Escreva a estratégia em detalhe, como um treinador no quadro tático: o plano do round em uma frase; quem abre o round e em que função (use os nomes e funções dos fatos); como o time entra, o ritmo e o momento do plante; como a equipe troca de posição ou protege o plante; o que fazer se a abertura falhar e como reagir ao movimento provável do adversário. Seja concreto e acionável, em frases curtas.
+- O texto-base do plano é uma lista de evidências cheia de estatísticas: NÃO copie suas frases nem seus números. Reescreva cada ideia como instrução tática, sem a estatística que a sustenta (ex.: "o site A vence 80% das vezes (n = 10)" vira "o site A é a melhor aposta contra esta defesa").
+- Compra e economia entram só como decisão (ex.: "compra completa, rifle e colete pesado"), sem recitar créditos.
+- Se um fato indicar amostra baixa, trate como palpite do treinador (ex.: "aposta", "vale testar"), sem citar o tamanho da amostra.
 - Tom impessoal: nunca fale com o leitor. Não use "você", "vocês", "seu", "sua", "seus", "suas", "te" nem "teu". Refira-se ao time pelo nome ou como "o time", "a equipe", "o adversário", e use a terceira pessoa ou frases impessoais (ex.: "o time ataca o site B", "convém priorizar o site A").
 Responda apenas com JSON no formato:
 {"rounds":[{"number":1,"strategy_summary":"...","strategy_steps":["..."],"enemy_summary":"...","contingency_won":"...","contingency_lost":"..."}],"narrative":"resumo, em até 4 frases, apenas dos rounds recebidos"}
@@ -96,8 +98,16 @@ def addresses_reader(text: str) -> bool:
     return bool(_SECOND_PERSON.search(text))
 
 
+_STAT_TALK = re.compile(r"%|\bn\s*=|\bmediana\b|\bamostra\b", re.IGNORECASE)
+
+
+def recites_stats(text: str) -> bool:
+    """True when a coach text quotes percentages, sample sizes or medians: a coach explains the plan, not the data."""
+    return bool(_STAT_TALK.search(text))
+
+
 def valid(text: str, allowed: set[str], total_rounds: int) -> bool:
-    return numbers_in(text) <= allowed and refs_ok(text, total_rounds) and not addresses_reader(text)
+    return numbers_in(text) <= allowed and refs_ok(text, total_rounds) and not addresses_reader(text) and not recites_stats(text)
 
 
 # ---- facts ------------------------------------------------------------------------------------------------------------
@@ -357,7 +367,7 @@ def narrate(plan: PlanResponse, client=None) -> PlanResponse:
     if errors:
         notes.append(f"Narrativa por IA incompleta: {errors[0]}")
     if stats["rejected"]:
-        notes.append(f"Narrativa por IA: {stats['rejected']} trecho(s) descartado(s) por citar números fora dos fatos calculados; "
+        notes.append(f"Narrativa por IA: {stats['rejected']} trecho(s) descartado(s) por citar números fora dos fatos, recitar estatísticas ou falar com o leitor (o texto-base ficou no lugar); "
                      f"{stats['accepted']} reescrito(s).")
     if not changed and narrative is None:
         return plan.model_copy(update={"notes_pt": notes}) if notes != plan.notes_pt else plan
