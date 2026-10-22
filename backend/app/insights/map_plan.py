@@ -16,6 +16,7 @@ from ..schemas.common import Point, Stat
 from ..schemas.map import HeatLayer, PlantPoint
 from ..schemas.plan import MapPlan, PlanMarker, PlanRoute, PlanZone
 from .core import f_pct
+from .navigation import route, snap_point
 from .rules_map import _events_and_layers, zone_name
 from .scouting import PlayerScout
 from .zones import find_zones
@@ -183,6 +184,20 @@ def blind_zones(full: Store, map_name: str, plants_pts: dict[str, tuple[float, f
     return out
 
 
+def _on_floor(r: PlanRoute, map_name: str, cache: dict) -> PlanRoute:
+    """The same route re-drawn through walkable floor (see `navigation`); memoized per waypoint list."""
+    raw = tuple((p.x, p.y) for p in r.points)
+    key = ("nav", raw)
+    if key not in cache:
+        cache[key] = route(map_name, list(raw))
+    return r.model_copy(update={"points": [Point(x=min(max(a, 0.0), 1.0), y=min(max(b, 0.0), 1.0)) for a, b in cache[key]]})
+
+
+def _hold_on_floor(m: PlanMarker, map_name: str) -> PlanMarker:
+    a, b = snap_point(map_name, (m.point.x, m.point.y))
+    return m.model_copy(update={"point": Point(x=a, y=b)})
+
+
 def build_map_plan(full: Store, team: str, enemy: str, map_name: str, side: str, site: str | None,
                    assigned: list[tuple[PlayerScout, str]], enemy_route: list[Point], enemy_snaps: int,
                    cache: dict) -> MapPlan:
@@ -214,6 +229,8 @@ def build_map_plan(full: Store, team: str, enemy: str, map_name: str, side: str,
         routes = list(routes) + [PlanRoute(
             kind="enemy", label=f"{enemy} · {'ataque provável' if side_en == 'attack' else 'defesa provável'}", points=enemy_route,
             evidence=_stat(enemy_snaps))]
+    routes = [_on_floor(r, map_name, cache) for r in routes]
+    markers = [_hold_on_floor(m, map_name) if m.kind == "hold" else m for m in markers]
     zk = ("zone", enemy, side_en)
     if zk not in cache:
         cache[zk] = enemy_weak_zone(full, enemy, map_name, side_en, plants)
