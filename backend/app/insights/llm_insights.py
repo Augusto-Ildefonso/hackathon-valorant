@@ -41,14 +41,15 @@ Regras obrigatórias:
 - Não afirme o que os fatos não dizem (por exemplo "rounds econômicos" se o fato não fala de economia, ou "domínio" com poucos jogos). Não explique POR QUE uma arma, agente ou posição funciona (alcance, habilidades, ângulos): não há dados disso. Fatos de popularidade (arma mais comprada, agente mais escolhido) descrevem o meta, não são recomendação por si só.
 - Você pode cruzar fatos (ex.: muitas aberturas vencidas mas poucas mortes trocadas) e deve explicar o porquê em uma frase.
 - Não invente habilidades, lineups, posições, nomes nem táticas que os fatos não sustentem. Frases curtas, tom de analista.
+- Tom impessoal e imparcial: o texto é lido por qualquer pessoa, não por um jogador específico. Nunca fale com o leitor: não use "você", "vocês", "seu", "sua", "seus", "suas", "te" nem "teu". Refira-se à entidade pelo nome (ex.: "chadu#2007", "UFMT Turuna", "Ascent") ou como "o jogador", "o time", "o mapa", em terceira pessoa. Dicas podem ser impessoais (ex.: "convém treinar o mapa X", "vale cobrir a zona Y").
 Responda apenas com JSON: {"insights":[{"kind":"strength|weakness|tip|strategy","fact_ids":["id1","id2"],"text_pt":"..."}]}
 """
 
 AUDIENCE = {
-    "jogador": "Público: o próprio jogador e seu treinador. Pontos fortes, fraquezas e dicas de treino.",
-    "time": "Público: a comissão técnica. Pontos fortes, fraquezas, melhorias e tendências que um adversário poderia explorar (strategy).",
-    "mapa": "Público: analistas e times que vão jogar neste mapa. Viés de lado, sites, retake e pontos cegos como strategy ou tip.",
-    "partida": 'Público: cada time no pós-jogo. Gere insights para os dois times e marque cada um com "time":"a" ou "time":"b" (campo extra obrigatório). Use só fatos do próprio time no insight dele (ids começam com "a:" ou "b:").',
+    "jogador": "Leitores: jogadores e treinadores em geral. Pontos fortes, fraquezas e dicas de treino sobre o jogador analisado (terceira pessoa).",
+    "time": "Leitores: comissões técnicas e analistas. Pontos fortes, fraquezas, melhorias e tendências do time analisado que um adversário poderia explorar (strategy), em terceira pessoa.",
+    "mapa": "Leitores: analistas e times que vão jogar neste mapa (terceira pessoa). Viés de lado, sites, retake e pontos cegos como strategy ou tip.",
+    "partida": 'Leitores: quem analisa a partida, sempre em terceira pessoa (cada time pelo nome). Gere insights para os dois times e marque cada um com "time":"a" ou "time":"b" (campo extra obrigatório). Use só fatos do próprio time no insight dele (ids começam com "a:" ou "b:").',
 }
 
 
@@ -129,6 +130,8 @@ def _convert(item: object, by_id: dict[str, IF.Fact], idx: int, match: bool) -> 
             return None, None, "partida sem time a/b", []
         if not all(i.startswith(f"{team}:") for i in ids):
             return None, None, "cita fato do outro time", []
+    if llm.addresses_reader(text):
+        return None, None, "fala com o leitor (você/sua): texto deve ser impessoal", []
     cited = [by_id[i] for i in ids]
     extra = llm.numbers_in(text) - _allowed_numbers(cited)
     if extra:

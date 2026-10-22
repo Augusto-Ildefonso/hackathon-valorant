@@ -142,14 +142,14 @@ def assign_roles(players: list[PlayerScout], side: str, base: Baselines | None =
         take(lambda p: p.opening_win if p.opening_win is not None else None, "entry",
              lambda p: f"{p.name} abre o ataque: vence {f_pct(p.opening_win)} dos duelos de abertura{med('opening_win_pct')}, n = {p.opening_n}.")
         take(lambda p: p.trade_share, "support",
-             lambda p: f"{p.name} segue o entry e troca o primeiro abate: {f_pct(p.trade_share)} das suas mortes foram trocadas{med('trade_share')}.")
+             lambda p: f"{p.name} segue o entry e troca o primeiro abate: {f_pct(p.trade_share)} das mortes do jogador foram trocadas{med('trade_share')}.")
         take(lambda p: p.role_scores.get("lurker"), "lurker",
              lambda p: f"{p.name} joga de lurker, o perfil mais forte do elenco nessa função (pontuação {f_num(p.role_scores['lurker'])}).")
     else:
         take(lambda p: p.role_scores.get("anchor"), "anchor",
              lambda p: f"{p.name} ancora o site, o melhor perfil de anchor do elenco (pontuação {f_num(p.role_scores['anchor'])}).")
         take(lambda p: p.trade_share, "support",
-             lambda p: f"{p.name} cobre o anchor e troca o primeiro contato: {f_pct(p.trade_share)} das suas mortes foram trocadas{med('trade_share')}.")
+             lambda p: f"{p.name} cobre o anchor e troca o primeiro contato: {f_pct(p.trade_share)} das mortes do jogador foram trocadas{med('trade_share')}.")
         take(lambda p: p.role_scores.get("anchor"), "anchor",
              lambda p: f"{p.name} é o segundo perfil de anchor do elenco (pontuação {f_num(p.role_scores['anchor'])}).")
     for p in left:

@@ -35,6 +35,7 @@ Regras obrigatórias:
 - Pode citar outros rounds apenas como "R<número>" quando o número existir no plano.
 - Escreva como um treinador: o plano em uma frase, por que (2 a 3 fatos), quem faz o quê e o risco com o plano B.
 - Se um fato indicar amostra baixa, diga que é uma hipótese.
+- Tom impessoal: nunca fale com o leitor. Não use "você", "vocês", "seu", "sua", "seus", "suas", "te" nem "teu". Refira-se ao time pelo nome ou como "o time", "a equipe", "o adversário", e use a terceira pessoa ou frases impessoais (ex.: "o time ataca o site B", "convém priorizar o site A").
 Responda apenas com JSON no formato:
 {"rounds":[{"number":1,"strategy_summary":"...","strategy_steps":["..."],"enemy_summary":"...","contingency_won":"...","contingency_lost":"..."}],"narrative":"resumo, em até 4 frases, apenas dos rounds recebidos"}
 """
@@ -87,8 +88,16 @@ def refs_ok(text: str, total_rounds: int) -> bool:
     return all(1 <= int(r[1:]) <= total_rounds for r in _ROUND_REF.findall(text))
 
 
+_SECOND_PERSON = re.compile(r"\b(voc[êe]s?|seus?|suas?|teus?|tuas?|te|ti|contigo|convosco)\b", re.IGNORECASE)
+
+
+def addresses_reader(text: str) -> bool:
+    """True when the text speaks to the reader ("você", "sua"): the app is impartial and its texts must stay impersonal."""
+    return bool(_SECOND_PERSON.search(text))
+
+
 def valid(text: str, allowed: set[str], total_rounds: int) -> bool:
-    return numbers_in(text) <= allowed and refs_ok(text, total_rounds)
+    return numbers_in(text) <= allowed and refs_ok(text, total_rounds) and not addresses_reader(text)
 
 
 # ---- facts ------------------------------------------------------------------------------------------------------------

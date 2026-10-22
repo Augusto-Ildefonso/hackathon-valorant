@@ -97,6 +97,19 @@ def test_invented_numbers_unknown_ids_and_bad_kinds_are_rejected(prof, base):
     assert "números fora dos fatos" in reasons and "inexistentes" in reasons and "tipo inválido" in reasons
 
 
+def test_texts_addressing_the_reader_are_rejected_but_impersonal_ones_pass(prof, base):
+    f = _facts(prof, base)
+    n = f["kd"].n
+    answer = _answer(
+        {"kind": "tip", "fact_ids": ["kd"], "text_pt": f"Você jogou {n} rounds e deve treinar mira."},
+        {"kind": "tip", "fact_ids": ["kd"], "text_pt": f"Sua amostra tem {n} rounds."},
+        {"kind": "strategy", "fact_ids": ["kd"], "text_pt": f"O jogador soma {n} rounds; convém acompanhar a mira."},
+    )
+    run = llm_insights.for_player(prof, base, client=Fake(answer))
+    assert len(run.insights) == 1 and "convém" in run.insights[0].text_pt
+    assert sum("fala com o leitor" in why for _, why in run.rejected) == 2
+
+
 def test_numbers_must_come_from_the_cited_facts_not_from_others(prof, base):
     f = _facts(prof, base)
     other = f"{f['adr'].value:.0f}"
