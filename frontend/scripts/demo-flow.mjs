@@ -20,7 +20,7 @@ const shot = (n) => page.screenshot({ path: `${out}/${n}.png`, fullPage: true })
 const see = (text, timeout = 60000) => page.getByText(text).first().waitFor({ timeout });
 
 await step("1 Home: KPIs and leaderboards", async () => {
-  await page.goto(WEB, { waitUntil: "domcontentloaded" });
+  await page.goto(`${WEB}/campeonatos`, { waitUntil: "domcontentloaded" });  // the former Home; `/` is now the chat
   await see("VAVÁGYM");
   await page.waitForLoadState("networkidle");
   await shot("1-home");

@@ -5,6 +5,7 @@ import { Logo } from "../ui/Logo";
 // `match` = path prefixes that keep the item highlighted (detail screens belong to their list entry)
 const NAV = [
   { to: "/", label: "Início", match: [] as string[] },
+  { to: "/campeonatos", label: "Campeonatos", match: ["/campeonatos"] },
   { to: "/jogadores", label: "Jogadores", match: ["/jogadores", "/jogador/"] },
   { to: "/times", label: "Times", match: ["/times", "/time/"] },
   { to: "/mapas", label: "Mapas", match: ["/mapas", "/mapa/"] },

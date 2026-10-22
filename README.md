@@ -26,7 +26,8 @@ It is **impartial**: there is no fixed "our team". You pick the entity, and wher
 
 | Screen | What it gives you |
 |---|---|
-| **Home** | Global search (players, teams, maps), dataset KPIs, leaderboards, recent matches, tournament/map/period filters |
+| **Início (chat)** | "Pergunte ao VaváGym": type a question (player info, map details, a plan against a team on a map, a championship summary) and get a readable answer built from the same analyses as the dashboard, with a "Ver no dashboard" button that opens the matching page already filled. Suggestions are optional shortcuts; the sidebar works without the chat |
+| **Campeonatos** | The former Home: global search (players, teams, maps), dataset KPIs, leaderboards, recent matches, tournament/map/period filters (`/campeonatos`) |
 | **Player** | K/D, ADR, HS%, opening duels, per-map and per-agent/weapon splits, behavioural roles (top 2 + confidence + signals), strengths / weaknesses / tips |
 | **Team** | Record and trend, roster and roles, attack vs defense, economy by round type (pistol, eco, force, full buy), per-map results, recommendations |
 | **Map** | Attack/defense bias, site preference and retake, kill/death heatmaps by side, blind-spot layers, usage of agents |

@@ -17,7 +17,8 @@ const map = matches[0].map.name;
 
 // [route, text that must be visible, timeout ms]
 const routes = [
-  ["/", "VAVÁGYM", 30000],
+  ["/", "Pergunte ao VaváGym", 30000],
+  ["/campeonatos", "Partidas recentes", 30000],
   ["/jogadores", "Jogadores", 30000],
   ["/times", "Times", 30000],
   ["/mapas", "Mapas", 30000],

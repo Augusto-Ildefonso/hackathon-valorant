@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import ActionPlanPage from "@/pages/ActionPlanPage";
+import ChatPage from "@/pages/ChatPage";
 import HomePage from "@/pages/HomePage";
 import { MapsListPage, MatchesListPage, PlayersListPage, TeamsListPage } from "@/pages/ListPages";
 import MapPage from "@/pages/MapPage";
@@ -18,7 +19,8 @@ export default function App() {
         <TopBar />
         <main className="flex flex-col gap-6 p-8">
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<ChatPage />} />
+            <Route path="/campeonatos" element={<HomePage />} />
             <Route path="/jogadores" element={<PlayersListPage />} />
             <Route path="/times" element={<TeamsListPage />} />
             <Route path="/mapas" element={<MapsListPage />} />

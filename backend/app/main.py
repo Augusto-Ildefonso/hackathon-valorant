@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from .deps import CATALOG_DIR, get_store
-from .routers import assets, maps, matches, meta, plan, players, teams
+from .routers import assets, chat, maps, matches, meta, plan, players, teams
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -15,7 +15,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="VaváGym API", version="0.1.0", lifespan=lifespan)
 
-for module in (meta, players, teams, maps, matches, plan, assets):
+for module in (meta, players, teams, maps, matches, plan, chat, assets):
     app.include_router(module.router)
 
 

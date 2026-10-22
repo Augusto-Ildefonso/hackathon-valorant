@@ -175,8 +175,8 @@ export default function ActionPlanPage() {
   const caps = usePlanCapabilities();
   const names = useMemo(() => (teams?.items ?? []).map((t) => t.team.name), [teams]);
   const [a, setA] = useState(params.get("teamA") ?? "");
-  const [b, setB] = useState("");
-  const [map, setMap] = useState("Ascent");
+  const [b, setB] = useState(params.get("teamB") ?? "");  // deep link from the chat: ?teamA=&teamB=&map=&run=1
+  const [map, setMap] = useState(params.get("map") ?? "Ascent");
   const [rph, setRph] = useState(12);
   const [start, setStart] = useState<Side>("attack");
   const [persp, setPersp] = useState<"a" | "b">("a");

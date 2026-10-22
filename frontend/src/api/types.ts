@@ -159,3 +159,20 @@ export interface PlanResponse {
   starting_side: Side; agents: AgentRecommendation[]; opponent: OpponentSummary; rounds: RoundPlan[]; narrative_pt: string | null;
   text_source?: "rules" | "llm"; notes_pt?: string[];  // Stream D (default "rules" / [])
 }
+
+// ---- chat (Stream G) ----
+export interface ChatContext { player_puuid?: string | null; team?: string | null; team_b?: string | null; map?: string | null; tournament?: string | null }
+export interface ChatStatItem { label: string; value: string; sample_size: number | null; low_sample: boolean }
+export interface PlanRoundSummary { number: number; side: string; round_type: string; summary_pt: string; buy_pt: string }
+export type ChatBlock =
+  | { type: "text"; text: string }
+  | { type: "warning"; text: string }
+  | { type: "stats"; title: string | null; items: ChatStatItem[] }
+  | { type: "insights"; title: string; items: Insight[] }
+  | { type: "table"; title: string | null; columns: string[]; rows: string[][] }
+  | { type: "choices"; prompt: string; options: Array<{ label: string; send: string }> }
+  | { type: "plan_summary"; title: string; rounds: PlanRoundSummary[]; weak_points: Insight[]; pdf_request: PlanRequest };
+export interface ChatResponse {
+  intent: string; source: "llm" | "rules"; context: ChatContext; blocks: ChatBlock[];
+  dashboard: { label: string; path: string } | null; suggestions: string[] | null; note: string | null;
+}

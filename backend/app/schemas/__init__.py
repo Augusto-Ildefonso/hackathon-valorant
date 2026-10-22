@@ -1,4 +1,5 @@
 """Frozen API contract. Every router returns one of these models; every contract fixture validates against one."""
+from .chat import ChatRequest, ChatResponse
 from .common import *  # noqa: F401,F403
 from .map import HeatmapResponse, MapListResponse, MapProfile
 from .match import KillsResponse, MatchListResponse, MatchReport

@@ -1,5 +1,6 @@
 // Home / Visão Geral (Figma "Screen / Home", 25:17). Owner: Stream E.
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMaps, useMatches, useMeta } from "@/api/hooks";
 import { MatchesTable } from "@/components/home/MatchesTable";
 import { TopPlayersPanel, TopTeamsPanel } from "@/components/home/Leaderboards";
@@ -17,6 +18,9 @@ export default function HomePage() {
   const maps = useMaps();
   const recent = useMatches({ limit: 4 });
   const { filters, set } = useFilters();
+  const [params] = useSearchParams();
+  const wanted = params.get("tournament");  // deep link from the chat: /campeonatos?tournament=ID
+  useEffect(() => { if (wanted) set({ tournament: wanted }); }, [wanted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) return <p className="text-accent">Erro ao carregar os dados: {String(error)}</p>;
   const k = meta?.kpis;
@@ -27,7 +31,7 @@ export default function HomePage() {
   return (
     <>
       <PageHeader
-        title="Visão Geral"
+        title="Campeonatos"
         subtitle={meta ? `Partidas customizadas de VALORANT · ${names} · ${dateBR(meta.date_from)} – ${dateBR(meta.date_to)}` : "Carregando…"}
       />
       <div className="flex gap-4">
