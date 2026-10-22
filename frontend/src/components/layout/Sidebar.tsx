@@ -1,5 +1,6 @@
 // Figma "Sidebar" (24:48) with "Nav Item" states. Owner: Stream E.
 import { Link, useLocation } from "react-router-dom";
+import { Logo } from "../ui/Logo";
 
 // `match` = path prefixes that keep the item highlighted (detail screens belong to their list entry)
 const NAV = [
@@ -16,7 +17,7 @@ export function Sidebar() {
   return (
     <nav className="sticky top-0 flex h-screen w-60 shrink-0 flex-col gap-1 border-r border-border bg-bg-nav px-3 py-5">
       <div className="flex items-center gap-[10px] p-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-accent font-display text-base font-semibold text-on-accent">V</div>
+        <Logo size={32} />
         <span className="font-display text-base font-semibold tracking-[0.96px] text-fg">VAVÁGYM</span>
       </div>
       <div className="h-3" />
