@@ -37,7 +37,7 @@ def catalog_file(url: str | None) -> Path | None:
 class Strip:
     """A row of small icons with a label under each (agents, a round's weapons)."""
 
-    items: list[tuple[Path, str]]
+    items: list[tuple[Path | None, str]]  # (icon file or None when the catalog has no picture, label)
 
 
 @dataclass
@@ -138,14 +138,41 @@ class ImageBank:
             for site, (_, route) in best.items():
                 self._routes[site] = route
                 self.refs[f"enemy:{site}"] = f"minimapa com o caminho provável do adversário rumo ao site {site}"
-        if any(catalog_file(a.agent.icon_url) for a in p.agents):
-            self.refs["agents"] = "retratos dos agentes recomendados"
+        if p.agents:  # agents the catalog does not know still get a labeled placeholder tile, never a silent gap
+            self.refs["agents"] = "retratos dos agentes recomendados (agente sem cadastro no catálogo aparece como 'Agente desconhecido')"
         for a in p.agents:
             if a.agent.name and catalog_file(a.agent.icon_url):
                 self.refs[f"agent:{a.agent.name}"] = f"retrato do agente {a.agent.name}"
         for r in p.rounds:
-            if any(b.weapon and catalog_file(b.weapon.icon_url) for b in r.buy):
+            if any(b.weapon for b in r.buy):
                 self.refs[f"buy:{r.number}"] = f"armas da compra do round {r.number}"
+
+    def data_notes(self) -> list[str]:
+        """What the plan shows as unknown or inferred (the catalog is outdated) and why, so a gap never looks like a bug."""
+        p = self.plan
+        notes: list[str] = []
+        unknown_agents = [a for a in p.agents if not a.agent.name]
+        if unknown_agents:
+            notes.append(f"{len(unknown_agents)} agente(s) recomendado(s) não constam no catálogo fornecido (ele está desatualizado): aparecem como \"Agente desconhecido\" e sem retrato. "
+                         "O plano usa o histórico real desses jogadores com o agente, só o nome não é conhecido.")
+        weapons = {b.weapon.id: b.weapon for r in p.rounds for b in r.buy if b.weapon}
+        unknown_w = [w for w in weapons.values() if not w.name]
+        if unknown_w:
+            notes.append(f"{len(unknown_w)} arma(s) das compras não constam no catálogo: aparecem como \"Arma desconhecida\" e sem ícone. A compra é a que o jogador mais usou nesse tipo de round.")
+        no_icon = [w for w in weapons.values() if w.name and not catalog_file(w.icon_url)]
+        if no_icon:
+            notes.append(f"{len(no_icon)} arma(s) conhecida(s) não têm ícone no catálogo e aparecem só com o nome.")
+        if any(w.name_inferred for w in weapons.values()) or any(a.agent.name_inferred for a in p.agents):
+            notes.append("Nomes marcados com \"(inferido)\" foram deduzidos pelo VaváGym a partir de outros dados, não vêm do catálogo.")
+        if any(b.armor != "none" for r in p.rounds for b in r.buy):
+            notes.append("Os coletes (leve ou pesado) são inferidos pela diferença de valor do equipamento, porque o catálogo não nomeia todos.")
+        if not p.map.has_minimap:
+            notes.append(f"{p.map.name} não tem minimapa no catálogo fornecido: este PDF não traz imagens de mapa (visão geral e caminho do adversário), só o texto do plano.")
+        elif not self.plants:
+            notes.append(f"Não há plantes registrados em {p.map.name} para marcar os sites no minimapa: a visão geral foi omitida.")
+        elif not any(k.startswith("enemy:") for k in self.refs):
+            notes.append("Não há posições suficientes do adversário neste mapa para desenhar o caminho provável dele.")
+        return notes
 
     def resolve(self, ref: str) -> Picture | Strip | None:
         p = self.plan
@@ -156,7 +183,8 @@ class ImageBank:
         if ref.startswith("enemy:"):
             return enemy_route(p.map.name, self._routes[ref.split(":", 1)[1]], self.plants)
         if ref == "agents":
-            return Strip([(f, a.agent.name or "Agente desconhecido") for a in p.agents if (f := catalog_file(a.agent.icon_url))])
+            return Strip([(catalog_file(a.agent.icon_url), (a.agent.name or "Agente desconhecido") + (" (inferido)" if a.agent.name_inferred else ""))
+                          for a in p.agents])
         if ref.startswith("agent:"):
             name = ref.split(":", 1)[1]
             return Strip([(f, name) for a in p.agents if a.agent.name == name and (f := catalog_file(a.agent.icon_url))][:1])
@@ -165,8 +193,9 @@ class ImageBank:
             r = next(x for x in p.rounds if x.number == n)
             counts: dict[str, list] = {}
             for b in r.buy:
-                if b.weapon and (f := catalog_file(b.weapon.icon_url)):
-                    c = counts.setdefault(b.weapon.id, [f, b.weapon.name or "Arma desconhecida", 0])
+                if b.weapon:
+                    name = (b.weapon.name or "Arma desconhecida") + (" (inferido)" if b.weapon.name_inferred else "")
+                    c = counts.setdefault(b.weapon.id, [catalog_file(b.weapon.icon_url), name, 0])
                     c[2] += 1
             return Strip([(f, f"{name} x{k}" if k > 1 else name) for f, name, k in counts.values()])
         return None

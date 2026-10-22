@@ -85,6 +85,44 @@ def test_pdf_is_a_real_multi_page_pdf(plan, full_store):
     assert len(pdf) < 4_000_000  # catalog icons are downscaled, not embedded at 1024 px
 
 
+def _with_unknowns(plan):
+    """A copy of the plan where an agent and a weapon are not in the catalog and the map has no minimap."""
+    p = plan.model_copy(deep=True)
+    p.agents[0].agent.name, p.agents[0].agent.icon_url = None, None
+    w = next(b.weapon for r in p.rounds for b in r.buy if b.weapon)
+    for r in p.rounds:  # the same weapon id everywhere: unknown name and no icon
+        for b in r.buy:
+            if b.weapon and b.weapon.id == w.id:
+                b.weapon.name, b.weapon.icon_url = None, None
+    p.map.has_minimap, p.map.minimap_url = False, None
+    return p
+
+
+def test_unknown_agent_weapon_and_map_are_explained_not_silently_missing(plan, full_store):
+    p = _with_unknowns(plan)
+    doc, bank = report.build_document(p, full_store, use_llm=False)
+    notes = " ".join(bank.data_notes())
+    assert "Agente desconhecido" in notes and "Arma desconhecida" in notes and "minimapa" in notes
+    heading = next(i for i, b in enumerate(doc.blocks) if b.text == "Notas sobre os dados")
+    assert doc.blocks[heading + 1].kind == "bullets" and heading < len(doc.blocks) - 2  # before the appendix table
+    assert any("Notas sobre os dados" in m for m in doc.meta)  # the cover points to it
+    agents = bank.resolve("agents")
+    assert agents.items[0] == (None, "Agente desconhecido") and all(label for _, label in agents.items)
+    tiles = [it for r in p.rounds if f"buy:{r.number}" in bank.refs for it in bank.resolve(f"buy:{r.number}").items]
+    assert any(path is None and label.startswith("Arma desconhecida") for path, label in tiles)  # a placeholder tile, not a gap
+    assert "map:overview" not in bank.refs and not any(k.startswith("enemy:") for k in bank.refs)
+    assert any("não tem minimapa" in b.text for b in doc.blocks if b.kind == "p")
+    pdf = render_pdf(doc, bank)  # placeholder tiles render without errors
+    assert pdf[:5] == b"%PDF-"
+    assert any("Arma desconhecida" in row[4] for row in doc.blocks[-1].rows[1:])  # the table says it too
+
+
+def test_clean_plan_has_no_data_notes_about_unknowns(plan, full_store):
+    _, bank = report.build_document(plan, full_store, use_llm=False)
+    notes = " ".join(bank.data_notes())
+    assert "minimapa" not in notes
+
+
 def _doc(*sections):
     return json.dumps({"sections": [{"heading": h, "blocks": b} for h, b in sections]})
 

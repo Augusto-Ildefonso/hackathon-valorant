@@ -14,7 +14,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import Flowable, Image, KeepTogether, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import CondPageBreak, Flowable, Image, KeepTogether, ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from .report import Block, Document
 from .report_images import ImageBank, Picture, Strip
@@ -66,6 +66,25 @@ class Rule(Flowable):
         self.canv.line(28 * mm, 1, self.width, 1)
 
 
+class _Unknown(Flowable):
+    """Placeholder tile for an icon the catalog does not have: dashed frame with a question mark."""
+
+    def __init__(self, width: float, height: float):
+        super().__init__()
+        self.width, self.height = width, height
+
+    def draw(self):
+        c = self.canv
+        c.setStrokeColor(colors.HexColor("#6b7285"))
+        c.setDash(2, 2)
+        c.setLineWidth(0.8)
+        c.roundRect(1, 1, self.width - 2, self.height - 2, 3, stroke=1, fill=0)
+        c.setDash()
+        c.setFillColor(colors.HexColor("#9aa1b2"))
+        c.setFont("Helvetica-Bold", 16)
+        c.drawCentredString(self.width / 2, self.height / 2 - 6, "?")
+
+
 def _cover(doc: Document) -> list:
     rows = [[Paragraph(clean(doc.title), STYLES["title"])], [Paragraph(clean(doc.subtitle), STYLES["sub"])]]
     rows += [[Paragraph(clean(m), STYLES["meta"])] for m in doc.meta]
@@ -95,6 +114,9 @@ def _strip(s: Strip, caption: str) -> list:
         return []
     cells, h = [], 15 * mm
     for path, label in s.items:
+        if path is None:  # the catalog has no picture: say so with a tile instead of leaving a silent gap
+            cells.append([_Unknown(18 * mm, h), Paragraph(clean(label), STYLES["label"])])
+            continue
         with PILImage.open(path) as im:
             ratio = im.width / im.height
             small = im.convert("RGBA")
@@ -153,10 +175,10 @@ def _flowables(doc: Document, bank: ImageBank) -> list:
     for b in doc.blocks:
         if b.kind == "h1":
             flush()
-            out += [Paragraph(clean(b.text), STYLES["h1"]), Rule(), Spacer(1, 4)]
+            out += [CondPageBreak(45 * mm), Paragraph(clean(b.text), STYLES["h1"]), Rule(), Spacer(1, 4)]  # no title alone at a page bottom
         elif b.kind == "h2":
             flush()
-            out.append(Paragraph(clean(b.text), STYLES["h2"]))
+            out += [CondPageBreak(35 * mm), Paragraph(clean(b.text), STYLES["h2"])]
         elif b.kind == "h3":
             flush()
             group = [Paragraph(clean(b.text), STYLES["h3"])]

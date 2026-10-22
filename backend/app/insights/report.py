@@ -71,6 +71,8 @@ def rules_body(plan: PlanResponse, bank: ImageBank) -> list[Block]:
                         "O cenário base distribui as vitórias pela probabilidade de cada round; a contingência de cada round mostra o que muda se o resultado for outro."))
     if "map:overview" in bank.refs:
         b.append(Block("image", ref="map:overview", caption=f"{plan.map.name} e seus sites"))
+    elif not plan.map.has_minimap:
+        b.append(Block("p", f"Observação: {plan.map.name} não tem minimapa no catálogo fornecido, por isso este documento não traz imagens de mapa."))
     if plan.agents:
         b.append(Block("h1", "Agentes recomendados"))
         if "agents" in bank.refs:
@@ -107,7 +109,7 @@ def appendix(plan: PlanResponse) -> list[Block]:
     for r in plan.rounds:
         weapons: dict[str, int] = {}
         for it in r.buy:
-            w = it.weapon.name if it.weapon and it.weapon.name else "?"
+            w = (it.weapon.name or "Arma desconhecida") if it.weapon else "sem arma"
             weapons[w] = weapons.get(w, 0) + 1
         rows.append([str(r.number), "ATQ" if r.side == "attack" else "DEF", ROUND_TYPE_PT.get(r.round_type, r.round_type), r.strategy.site or "-",
                      ", ".join(f"{k} x{v}" if v > 1 else k for k, v in weapons.items()), r.strategy.summary_pt])
@@ -234,5 +236,9 @@ def build_document(plan: PlanResponse, full: Store | None, use_llm: bool = False
         doc.blocks, doc.source = blocks, "llm"
     else:
         doc.blocks, doc.note = rules_body(plan, bank), note
+    notes = bank.data_notes()  # always written by code, in both modes: a missing image or name must never look like a bug
+    if notes:
+        doc.meta.append("Itens sem nome ou imagem no catálogo estão explicados em \"Notas sobre os dados\"")
+        doc.blocks += [Block("h1", "Notas sobre os dados"), Block("bullets", items=notes)]
     doc.blocks += appendix(plan)
     return doc, bank
