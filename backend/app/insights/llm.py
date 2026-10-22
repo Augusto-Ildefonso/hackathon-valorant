@@ -318,7 +318,6 @@ def narrate(plan: PlanResponse, client=None) -> PlanResponse:
             narrative_parts.append(res["narrative"])
 
     changed = False
-    stats = {"accepted": 0, "rejected": 0}
     new_rounds: list[RoundPlan] = []
     for r in plan.rounds:
         item = by_number.get(r.number)
@@ -330,11 +329,7 @@ def narrate(plan: PlanResponse, client=None) -> PlanResponse:
         def good(s) -> bool:
             if not isinstance(s, str) or not s.strip():
                 return False
-            if valid(s, ok, total):
-                stats["accepted"] += 1
-                return True
-            stats["rejected"] += 1
-            return False
+            return valid(s, ok, total)
 
         upd: dict = {}
         if good(item.get("strategy_summary")):
@@ -366,9 +361,7 @@ def narrate(plan: PlanResponse, client=None) -> PlanResponse:
     notes = list(plan.notes_pt)
     if errors:
         notes.append(f"Narrativa por IA incompleta: {errors[0]}")
-    if stats["rejected"]:
-        notes.append(f"Narrativa por IA: {stats['rejected']} trecho(s) descartado(s) por citar números fora dos fatos, recitar estatísticas ou falar com o leitor (o texto-base ficou no lugar); "
-                     f"{stats['accepted']} reescrito(s).")
+    # fields the checks rejected silently keep the template text: no summary note (the plan stays complete either way)
     if not changed and narrative is None:
         return plan.model_copy(update={"notes_pt": notes}) if notes != plan.notes_pt else plan
     return plan.model_copy(update={"rounds": new_rounds, "narrative_pt": narrative, "text_source": "llm", "notes_pt": notes})
