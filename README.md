@@ -45,6 +45,17 @@ It is **impartial**: there is no fixed "our team". You pick the entity, and wher
 </tr>
 </table>
 
+### The chat ("Pergunte ao VaváGym") in detail
+
+The first page is a chat, but it is only a shortcut: the sidebar and the global search keep working, and nothing requires using it.
+
+- **What to ask:** a player ("informações do jogador chadu#2007"), a team, a map, a team's last match, a plan ("plano do time A contra o time B no mapa Ascent"), a championship ("resumo do rush esquenta 2") or the rankings. Follow-ups work ("e no Lotus?" after a plan). Optional suggestion chips appear before the first question and disappear after it.
+- **Same engines, no new numbers:** `POST /api/chat` understands the sentence, calls the very same functions the dashboard endpoints use, and shows the result as blocks (stats with sample size, insights with evidence, tables, plan summary + PDF button). Every answer ends with **"Ver no dashboard"**, which opens the matching page already filled (`/jogador/:id`, `/time/:name`, `/mapa/:name`, `/partida/:id`, `/plano?teamA&teamB&map&run=1`, `/campeonatos?tournament=ID`).
+- **Works offline:** without a key, the sentence is understood by accent-insensitive keywords and fuzzy name matching (typos are forgiven).
+- **With a Gemini key:** the model (a) classifies free-form sentences the rules cannot place, with every name it returns re-checked against the dataset, and (b) adds a short interpretive paragraph tagged "IA", shown only if it passes the same checks as the plan narrator (no invented numbers, no statistics, no "você", no utility talk).
+- **Form-style validation:** a question with missing or ambiguous data (a plan without two teams and a map, an unknown name, "CEUB" when several teams contain it) is not sent: the input turns red with a message saying what to provide, and no AI summary is requested.
+- Tournament names resolve by their distinctive words and number: "rush esquenta 2" is *Esquenta 2*, "rush esquenta" is *Esquenta*.
+
 ### The Action Plan in detail
 
 ![Action Plan](docs/screens/6-plan-round.png)
@@ -110,6 +121,7 @@ Open <http://localhost:5173>.
 | `make test` | Backend `pytest` + frontend `tsc` |
 | `make fixtures` | Regenerates the contract fixtures |
 | `cd frontend && npm run smoke` | Browser smoke test: every route, at 1440 and 1024 px (needs `make dev` running) |
+| `cd frontend && node scripts/test-chat.mjs` | Chat flow: ask, open the dashboard from the answer, deep-linked plan, input validation (needs `make dev`) |
 | `cd frontend && npm run demo-flow [dir]` | Clicks through the demo storyline and saves screenshots |
 
 ### Enabling the AI mode (optional)
@@ -140,11 +152,12 @@ backend/app/
   analytics/    player / team / map / match builders, heatmaps, replay, role model
   insights/     thresholds + baselines, rules_*.py, zones, scouting, plays, action_plan,
                 play_model, and the optional llm layer (llm.py, llm_insights.py)
+  chat/         chat: understand (offline rules), compose (blocks from the engines), llm_chat (optional AI)
   routers/      HTTP endpoints         schemas/   Pydantic contract
-backend/tests/  pytest suite (168 tests: loader, metrics, rules, plan, LLM with a fake client, contract)
-backend/scripts/ calibration, coordinate check, insight comparison, showcase picker, make_report (PDF without a server)
-frontend/src/   pages/, components/{ui,map,layout,home}, api/ (types, hooks, mock)
-frontend/scripts/ Playwright: smoke, demo-flow, shot, round-click, AI-insights checks
+backend/tests/  pytest suite (194 tests: loader, metrics, rules, plan, chat, LLM with a fake client, contract)
+backend/scripts/ calibration, coordinate check, insight comparison, showcase picker, make_report (PDF without a server), chat_probe / chat_live
+frontend/src/   pages/ (ChatPage = Início), components/{ui,map,layout,home,chat}, api/ (types, hooks, mock)
+frontend/scripts/ Playwright: smoke, demo-flow, test-chat, shot, round-click, AI-insights checks
 contract/       openapi.md + fixtures      data/   the 336 match JSON files
 public_catalog/ agent, weapon and map images and ID lookups
 .claude/        plans, project details, data reports, pitch kit
@@ -152,7 +165,7 @@ public_catalog/ agent, weapon and map images and ID lookups
 
 ### API at a glance
 
-`GET /api/meta · /search · /leaderboards · /matches · /players/{puuid} · /teams · /teams/{name} · /maps · /maps/{name} · /maps/{name}/heatmap · /matches/{id} · /matches/{id}/kills` and `POST /api/plan` (+ `GET /api/plan/capabilities`).
+`GET /api/meta · /search · /leaderboards · /matches · /players/{puuid} · /teams · /teams/{name} · /maps · /maps/{name} · /maps/{name}/heatmap · /matches/{id} · /matches/{id}/kills` and `POST /api/plan` (+ `GET /api/plan/capabilities`, `POST /api/plan/report` for the PDF), `POST /api/chat` and `POST /api/chat/summary`.
 The profile endpoints take `?insights=rules|llm`. Full contract: [`contract/openapi.md`](contract/openapi.md); data tables: [`backend/app/data/SCHEMA.md`](backend/app/data/SCHEMA.md); metric definitions: [`backend/app/metrics/SPEC.md`](backend/app/metrics/SPEC.md).
 
 ---
@@ -181,6 +194,7 @@ Details in [`.claude/docs/data-report.md`](.claude/docs/data-report.md). The one
 - Roles are behavioural estimates, not official roles.
 - Enemy weak points are often empty against very strong opponents (not enough evidence to claim one).
 - AI mode is slow and depends on a free-tier quota; it always falls back to rules.
+- The chat understands the intents listed above, not arbitrary questions; anything else gets a "what I can do" answer. It has no Figma frame (it reuses the design tokens).
 - Laptop layout (1024 px and up); not tuned for phones.
 
 ## Contributing and project docs
