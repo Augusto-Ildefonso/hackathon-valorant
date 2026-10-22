@@ -71,6 +71,15 @@ await step("an unknown name gets an explanation, not silence", async () => {
   await page.getByText(/Não encontrei/).waitFor({ timeout: 30000 });
 });
 
+await step("missing data is an input error: nothing is sent to the conversation and no AI summary is requested", async () => {
+  await page.getByRole("button", { name: "Nova conversa" }).click();
+  await ask("plano de ação contra o time CEUB no mapa Ascent");
+  await page.getByRole("alert").filter({ hasText: /mais de um time|Faltou/ }).waitFor({ timeout: 30000 });
+  if (await page.getByText("Escrevendo o resumo").count()) throw new Error("summary shown for an invalid question");
+  if (await page.getByLabel("Pergunta").getAttribute("aria-invalid") !== "true") throw new Error("input not marked invalid");
+  if ((await page.getByLabel("Pergunta").inputValue()).length === 0) throw new Error("question was cleared");
+});
+
 await step("no console errors", async () => { if (errors.length) throw new Error(errors.join(" | ")); });
 
 await browser.close();

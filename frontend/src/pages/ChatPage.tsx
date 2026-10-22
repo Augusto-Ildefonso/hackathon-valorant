@@ -26,6 +26,7 @@ export default function ChatPage() {
   const [ctx, setCtx] = useState<ChatContext>(initial.ctx);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | undefined>();
   const [hideTips, setHideTips] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   const board = useLeaderboards();
@@ -52,11 +53,17 @@ export default function ChatPage() {
     const message = raw.trim();
     if (!message || busy) return;
     const id = Date.now();
-    setText("");
     setBusy(true);
-    setMsgs((m) => [...m, { id, role: "user", text: message }]);
+    setProblem(undefined);
     try {
       const r = await api<ChatResponse>("/api/chat", { body: { message, context: ctx } });
+      if (r.problem) {  // missing or unknown data: like an invalid form field, the question is not sent and stays in the box
+        setText(message);
+        setProblem(r.problem);
+        return;
+      }
+      setText("");
+      setMsgs((m) => [...m, { id, role: "user", text: message }]);
       setCtx(r.context);
       setMsgs((m) => [...m, { id: id + 1, role: "bot", response: r, summarizing: r.can_summarize }]);
       if (r.can_summarize) {  // the answer is already on screen; the optional AI paragraph arrives when (and if) it is ready
@@ -65,7 +72,8 @@ export default function ChatPage() {
           .catch(() => setMsgs((m) => m.map((x) => (x.id === id + 1 && x.role === "bot" ? { ...x, summarizing: false } : x))));
       }
     } catch (e) {
-      setMsgs((m) => [...m, { id: id + 1, role: "bot", error: String(e) }]);
+      setMsgs((m) => [...m, { id, role: "user", text: message }, { id: id + 1, role: "bot", error: String(e) }]);
+      setText("");
     } finally {
       setBusy(false);
     }
@@ -122,15 +130,18 @@ export default function ChatPage() {
         <div className="flex gap-3">
           <input
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => { setText(e.target.value); setProblem(undefined); }}
             aria-label="Pergunta"
+            aria-invalid={problem ? true : undefined}
+            aria-describedby={problem ? "chat-problem" : undefined}
             placeholder="Ex.: plano do time A contra o time B no mapa Ascent"
-            className="min-w-0 flex-1 rounded-sm border border-border bg-surface px-4 py-3 text-sm text-fg placeholder:text-fg-muted"
+            className={`min-w-0 flex-1 rounded-sm border bg-surface px-4 py-3 text-sm text-fg placeholder:text-fg-muted ${problem ? "border-accent" : "border-border"}`}
           />
           <button type="submit" disabled={busy || !text.trim()} className="shrink-0 rounded-sm bg-accent px-6 py-3 font-display text-xs font-semibold uppercase tracking-[0.96px] text-on-accent hover:bg-accent-hover disabled:opacity-50">
             Enviar
           </button>
         </div>
+        {problem && <p id="chat-problem" role="alert" className="text-sm text-accent">{problem}</p>}
         {!hideTips && tips.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-fg-muted">Sugestões (opcional)</span>

@@ -20,7 +20,7 @@ def chat(req: ChatRequest):
             u = guess
     out = dispatch(u, ctx)
     out.source = u.source  # type: ignore[assignment]
-    out.can_summarize = llm.enabled() and out.intent in SUMMARY_INTENTS
+    out.can_summarize = llm.enabled() and out.intent in SUMMARY_INTENTS and out.problem is None
     return out
 
 

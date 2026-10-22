@@ -74,8 +74,10 @@ def choices_reply(intent, ctx: ChatContext, prompt: str, options: list[ChoiceOpt
 
 
 def not_found(ctx: ChatContext, what: str) -> ChatResponse:
-    return reply("unknown", ctx, [WarningBlock(text=f"Não encontrei “{what}” nos dados. Confira a grafia ou escolha pelo menu lateral."),
-                                  TextBlock(text="Dica: o nome precisa existir nas partidas carregadas; posso procurar por parte do nome.")], suggestions=SUGGESTIONS)
+    msg = f"Não encontrei “{what}” nos dados. Confira a grafia: o nome precisa existir nas partidas carregadas."
+    out = reply("unknown", ctx, [WarningBlock(text=msg)], suggestions=SUGGESTIONS)
+    out.problem = msg
+    return out
 
 
 # ── per-intent composers ──────────────────────────────────────────────────────────────────────
@@ -202,6 +204,12 @@ def _leaders(ctx: ChatContext) -> ChatResponse:
 def dispatch(u: Understood, ctx: ChatContext) -> ChatResponse:
     """Run the engine for the understood intent. Ambiguity and missing pieces come back as questions, never guesses."""
     ctx = ctx.model_copy(deep=True)
+    if u.partial and u.intent in ("plan", "team", "match", "map", "unknown"):
+        word, cands = u.partial
+        msg = f"“{word}” corresponde a mais de um time ({', '.join(cands[:6])}). Informe o nome completo."
+        out = reply("unknown", ctx, [WarningBlock(text=msg)])
+        out.problem = msg
+        return out
     if u.intent == "help":
         return help_reply(ctx)
     if u.intent == "player":
@@ -226,8 +234,10 @@ def dispatch(u: Understood, ctx: ChatContext) -> ChatResponse:
         mp = u.map or ctx.map
         if not (a and b and mp):
             missing = ["os dois times" if not a else "o segundo time" if not b else None, None if mp else "o mapa"]
-            return reply("plan", ctx, [TextBlock(text="Para montar o plano são necessários dois times e um mapa. Faltou informar " + " e ".join(m for m in missing if m) + "."),
-                                       TextBlock(text="Exemplo: “plano do time A contra o time B no mapa Ascent”. O primeiro time é o que recebe o plano.")], suggestions=SUGGESTIONS)
+            msg = "Faltou informar " + " e ".join(m for m in missing if m) + ". Exemplo: “plano do time A contra o time B no mapa Ascent” (o primeiro time recebe o plano)."
+            out = reply("plan", ctx, [WarningBlock(text=msg)])
+            out.problem = msg
+            return out
         return plan(a, b, mp, ctx)
     if u.miss:
         return not_found(ctx, u.miss)

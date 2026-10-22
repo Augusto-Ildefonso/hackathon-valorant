@@ -103,6 +103,7 @@ class ChatResponse(Model):
     dashboard: DashboardLink | None = None
     suggestions: list[str] | None = None  # optional follow-up shortcuts
     note: str | None = None
+    problem: str | None = None  # the question cannot be answered as typed (missing or unknown data): the client shows it as an input error and does not add it to the conversation
     can_summarize: bool = False  # the optional AI summary is available: the client may ask POST /api/chat/summary
 
 

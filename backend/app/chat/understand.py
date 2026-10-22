@@ -57,6 +57,7 @@ class Understood:
     map: str | None = None
     tournament: str | None = None
     source: str = "rules"
+    partial: tuple[str, list[str]] | None = None  # a word that belongs to several team names: (word, candidates)
     miss: str | None = None  # something the person named that does not exist ("jogador xyz")
 
 
@@ -150,6 +151,16 @@ def understand_rules(message: str, ctx: ChatContext | None = None) -> Understood
     if u.map is None:
         hit = _fuzzy(text, {_norm(m): m for m in nm.maps}, taken)
         u.map = hit[0] if hit else None  # type: ignore[assignment]
+
+    if len(u.teams) < 2:  # "time CEUB": a word of several team names is not a team yet, so ask which one
+        words = [w for w in re.findall(r"(?:time|equipe|contra)\s+(?:o\s+|a\s+)?(?:time\s+|equipe\s+)?([a-z0-9]{3,})", text) if w not in ("time", "equipe")]
+        word = words[0] if words else None
+        if word and not any(word in _norm(t).split() for t in u.teams):
+            cands = [t for t in nm.teams if word in _norm(t).split()]
+            if len(cands) == 1:
+                u.teams = sorted([*u.teams, cands[0]], key=lambda t: text.find(_norm(t)) if _norm(t) in text else text.find(word))
+            elif cands:
+                u.partial = (word, cands)
 
     named = re.search(r"(?:jogador|player|time|equipe|mapa)\s+([a-z0-9#]+(?:\s+[a-z0-9#]+)?)", text)
     if not (u.teams or u.players or u.map or u.tournament) and named and not _has(text, HELP_WORDS):

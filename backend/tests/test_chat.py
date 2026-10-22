@@ -59,9 +59,17 @@ def test_plan_question_keeps_the_order_of_the_teams_and_fills_the_deep_link(nm, 
 
 def test_plan_with_missing_pieces_asks_instead_of_guessing(nm):
     r = ask(f"plano contra o time {nm.teams[0]}")
-    assert r.intent == "plan" and r.dashboard is None and "warning" not in kinds(r)
-    text = " ".join(b.text for b in r.blocks if b.type == "text")
+    assert r.intent == "plan" and r.dashboard is None and r.problem
+    text = r.problem
     assert "Faltou" in text and not re.search(r"\b(você|seu|sua)\b", text.lower())
+
+
+def test_missing_or_partial_data_is_an_input_problem_not_an_answer(nm):
+    r = ask(f"plano contra o time {nm.teams[0]}")  # no map, one team
+    assert r.problem and "Faltou" in r.problem and r.can_summarize is False
+    r = ask("quero um plano de ação contra o Time CEUB no mapa ASCENT")  # "CEUB" belongs to several teams
+    assert r.problem and "mais de um time" in r.problem and "CEUB" in r.problem
+    assert ask("jogador xyzabcq").problem and ask(f"time {nm.teams[0]}").problem is None
 
 
 def test_follow_up_uses_the_previous_context(full_store):

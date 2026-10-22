@@ -174,5 +174,5 @@ export type ChatBlock =
   | { type: "plan_summary"; title: string; rounds: PlanRoundSummary[]; weak_points: Insight[]; pdf_request: PlanRequest };
 export interface ChatResponse {
   intent: string; source: "llm" | "rules"; context: ChatContext; blocks: ChatBlock[];
-  dashboard: { label: string; path: string } | null; suggestions: string[] | null; note: string | null; can_summarize: boolean;
+  dashboard: { label: string; path: string } | null; suggestions: string[] | null; note: string | null; problem: string | null; can_summarize: boolean;
 }
