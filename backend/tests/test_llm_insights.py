@@ -175,7 +175,7 @@ def test_malformed_json_moves_on_to_the_next_model(prof, base, monkeypatch):
 
 
 def test_disabled_or_failed_llm_leaves_nothing(prof, base, monkeypatch):
-    monkeypatch.delenv("VAVAGYM_LLM")
+    monkeypatch.setenv("VAVAGYM_LLM", "0")
     assert not llm_insights.for_player(prof, base, client=Fake("{}")).ok
     monkeypatch.setenv("VAVAGYM_LLM", "1")
     run = llm_insights.for_player(prof, base, client=Fake("não é json"))
@@ -231,7 +231,7 @@ def test_endpoint_accepts_the_insights_param_and_reports_the_source(full_store, 
     pid = pt[pt.rounds >= 300].index[0]
     r = client.get(f"/api/players/{pid}?insights=rules").json()
     assert r["insights_source"] == "rules"
-    monkeypatch.delenv("VAVAGYM_LLM")
+    monkeypatch.setenv("VAVAGYM_LLM", "0")
     r = client.get(f"/api/players/{pid}?insights=llm").json()
     assert r["insights_source"] == "rules"  # LLM off: honest fallback
     assert client.get(f"/api/players/{pid}?insights=bogus").status_code == 422

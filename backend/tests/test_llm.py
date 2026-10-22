@@ -56,11 +56,12 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setattr(llm, "CACHE_DIR", tmp_path / "llm")
 
 
-def test_disabled_without_flag_or_key(monkeypatch):
+def test_on_with_a_key_off_with_opt_out_or_without_key(monkeypatch):
     assert llm.enabled()
-    monkeypatch.delenv("VAVAGYM_LLM")
+    monkeypatch.setenv("VAVAGYM_LLM", "0")
     assert not llm.enabled()
-    monkeypatch.setenv("VAVAGYM_LLM", "1")
+    monkeypatch.delenv("VAVAGYM_LLM")
+    assert llm.enabled()  # no flag needed any more
     monkeypatch.delenv("GEMINI_API_KEY")
     assert not llm.enabled()
 

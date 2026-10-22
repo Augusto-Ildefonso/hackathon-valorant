@@ -2,8 +2,8 @@
 
 The rule-based planner decides everything: the plays, the numbers, the evidence. This module only asks the model to
 rewrite the plan's text the way a coach would say it, strictly from the facts the planner produced. Safety:
-* Google Gemini only: off unless `VAVAGYM_LLM=1` and `GEMINI_API_KEY` (Google AI Studio) are set, in the environment or in
-  the git-ignored `<repo>/.env`; the app is complete without it;
+* Google Gemini only: on whenever `GEMINI_API_KEY` (Google AI Studio) is set, in the environment or in the git-ignored
+  `<repo>/.env` (`VAVAGYM_LLM=0` turns it off); without a key the app is complete with the rules alone;
 * every number in a rewritten field must already appear in that round's input (references like "R5" must point to a
   real round), otherwise that field keeps the template text;
 * any failure (network, timeout, bad JSON) leaves the plan untouched; results are cached on disk by input hash.
@@ -66,7 +66,7 @@ def api_key() -> str | None:
 
 
 def enabled() -> bool:
-    return os.environ.get("VAVAGYM_LLM") == "1" and api_key() is not None
+    return os.environ.get("VAVAGYM_LLM") != "0" and api_key() is not None  # on whenever a key exists; VAVAGYM_LLM=0 is the opt-out
 
 
 def model_name() -> str:

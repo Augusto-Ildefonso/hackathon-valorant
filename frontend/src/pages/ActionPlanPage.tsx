@@ -439,7 +439,7 @@ export default function ActionPlanPage() {
             <button
               onClick={() => run(data.perspective, { use_llm: true })}
               disabled={!caps.data?.llm || plan.isPending || data.text_source === "llm"}
-              title={data.text_source === "llm" ? "Plano já reescrito" : caps.data?.llm ? "Reescrever o plano com IA, usando só os fatos acima" : "Narrativa desativada neste ambiente (defina VAVAGYM_LLM=1 e GEMINI_API_KEY no arquivo .env do servidor)"}
+              title={data.text_source === "llm" ? "Plano já reescrito" : caps.data?.llm ? "Reescrever o plano com IA, usando só os fatos acima" : "Narrativa desativada neste ambiente (defina GEMINI_API_KEY no arquivo .env do servidor)"}
               className={`rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] ${caps.data?.llm && data.text_source !== "llm" ? "text-fg-secondary hover:text-fg" : "text-fg-muted opacity-60"}`}
             >
               {writing ? "Escrevendo…" : "Gerar narrativa"}

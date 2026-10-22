@@ -77,7 +77,7 @@ data/*.json ──► loader ──► in-memory Store ──► metrics ──�
 - **Behavioural roles.** Role scores are percentiles of behavioural signals (opening duels, entry timing, distance to the team, assists, presence on sites...) against the whole dataset: top 2 with confidence and the signals behind them. IGL is deliberately not guessed.
 - **Rules first, always on.** The whole app works offline with deterministic rules. No database: the JSON files are loaded into memory at startup (about 1 s from the disk cache).
 
-### Optional AI layer (Gemini only, off by default)
+### AI layer (Gemini only, on whenever a key is set)
 
 When enabled, an **"Análise por IA"** toggle appears on the Player, Team, Map and Match pages, and the Action Plan can generate a coach-style narrative. The model never owns a number:
 
@@ -113,12 +113,12 @@ Open <http://localhost:5173>.
 
 ```bash
 cp .env.example .env
-# edit .env: set GEMINI_API_KEY (Google AI Studio key) and keep VAVAGYM_LLM=1
+# edit .env: set GEMINI_API_KEY (Google AI Studio key). That is all: the AI layer is on when a key exists
 ```
 
 Restart `make dev`. The key can also come from the environment (`GEMINI_API_KEY` or `GOOGLE_API_KEY`); a real environment variable wins over `.env`, which is git-ignored.
 Models are tried in order (`gemini-3-flash-preview`, `gemini-flash-latest`, `gemini-3.5-flash`, then Gemma 4 as quota-independent fallbacks);
-`VAVAGYM_LLM_MODEL` forces a single one. Without a key the buttons are disabled and everything else works.
+`VAVAGYM_LLM_MODEL` forces a single one. Without a key the AI buttons are disabled and everything else works; set `VAVAGYM_LLM=0` to switch the AI layer off even with a key.
 
 ---
 
@@ -170,7 +170,7 @@ Details in [`.claude/docs/data-report.md`](.claude/docs/data-report.md). The one
 - Match data comes **only** from the supplied JSON files: no scraping, no external stats APIs.
 - Post-match and preparation analysis only; nothing that helps during a live match.
 - No Riot logos or fonts; catalog images are the supplied ones (usage confirmed by the organisers).
-- The LLM is optional, off by default, and never invents numbers.
+- The AI layer is always on when a key is configured (rules remain the default view and the fallback), and it never invents numbers.
 
 ## Limits and next steps
 

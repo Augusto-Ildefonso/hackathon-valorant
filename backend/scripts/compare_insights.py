@@ -76,7 +76,7 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=3)
     args = ap.parse_args()
     if not llm.enabled():
-        sys.exit("LLM is off: set VAVAGYM_LLM=1 and GEMINI_API_KEY in .env")
+        sys.exit("LLM is off: set GEMINI_API_KEY in .env (and do not set VAVAGYM_LLM=0)")
 
     s = get_store()
     base = get_baselines(s)

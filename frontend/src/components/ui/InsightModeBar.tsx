@@ -27,7 +27,7 @@ export function InsightModeBar({ mode, onChange, loading, source }: InsightModeB
           on={mode === "llm"}
           disabled={!available}
           onClick={() => onChange("llm")}
-          title={available ? "Análise por IA sobre os mesmos fatos calculados; cada número é validado" : "Desativada neste ambiente (defina VAVAGYM_LLM=1 e GEMINI_API_KEY no arquivo .env do servidor)"}
+          title={available ? "Análise por IA sobre os mesmos fatos calculados; cada número é validado" : "Desativada neste ambiente (defina GEMINI_API_KEY no arquivo .env do servidor)"}
           className={available ? "" : "cursor-not-allowed opacity-50"}
         >
           {loading ? "Gerando análise…" : "Análise por IA"}

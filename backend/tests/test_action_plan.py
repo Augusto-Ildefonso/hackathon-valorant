@@ -118,6 +118,6 @@ def test_endpoint_validation(pair):
     assert client.post("/api/plan", json={**ok, "rounds_per_half": 16}).status_code == 422
 
 
-def test_capabilities_off_by_default(monkeypatch):
-    monkeypatch.delenv("VAVAGYM_LLM", raising=False)
+def test_capabilities_off_with_opt_out(monkeypatch):
+    monkeypatch.setenv("VAVAGYM_LLM", "0")
     assert client.get("/api/plan/capabilities").json() == {"llm": False, "model": None}

@@ -55,7 +55,7 @@ Screenshots: `cd frontend && npm run demo-flow ../demo-shots` (dev servers runni
 - [ ] `make dev`, then `cd frontend && npm run smoke` → "all routes ok" (10 routes x 1440/1024 px: no console errors, no failed API calls, one `h1`, alt texts, no horizontal overflow).
 - [ ] `npm run demo-flow` → all 6 steps ok, look at the images.
 - [ ] Action Plan for the showcase matchup loads in in about 6 s the first time (instant when cached).
-- [ ] If showing AI mode: key in `.env`, `VAVAGYM_LLM=1`, test the toggle once before recording (quota may be exhausted; the app falls back and says so).
+- [ ] If showing AI mode: key in `.env` (`GEMINI_API_KEY`), test the toggle once before recording (quota may be exhausted; the app falls back and says so).
 - [ ] Browser zoom 100%, window 1440 wide, dark theme, no personal bookmarks or notifications on screen.
 - [ ] Do the recording from the same build you submit; keep a backup recording from the previous build.
 
