@@ -89,6 +89,15 @@ def test_tournament_and_leaderboard_questions(nm):
     assert ask("resumo do campeonato").dashboard.path == "/campeonatos"
 
 
+def test_numbered_tournament_is_not_confused_with_its_unnumbered_sibling():
+    ids = {t["id"] for t in names().tournaments}
+    if not {"RUSHE", "RUSH2"} <= ids:
+        pytest.skip("dataset has no Esquenta / Esquenta 2")
+    assert ask("resumo do rush esquenta 2").context.tournament == "RUSH2"
+    assert ask("resumo do Rush Series Esquenta 2").context.tournament == "RUSH2"
+    assert ask("resumo do rush esquenta").context.tournament == "RUSHE"
+
+
 def test_unknown_and_help_are_explained_not_silent():
     r = ask("jogador xyzabcq")
     assert r.intent == "unknown" and r.blocks[0].type == "warning" and "xyzabcq" in r.blocks[0].text

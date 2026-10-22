@@ -118,14 +118,17 @@ def _map_in(text: str, nm: Names) -> str | None:
 
 
 def _tournament_in(text: str, nm: Names) -> str | None:
+    """The tournament whose distinctive words (and number) are ALL in the sentence; the one naming the most words wins, so
+    "rush esquenta 2" is Esquenta 2 while "rush esquenta" is Esquenta (the number must be written to select the numbered one)."""
+    toks = set(re.findall(r"[a-z0-9]+", text))
+    best, best_n = None, 0
     for t in nm.tournaments:
-        if _find_whole(text, t["id"]) or _find_whole(text, t["name"]):
+        if _find_whole(text, t["id"]):
             return t["id"]
-    for t in nm.tournaments:  # "rush series" / "univava" appear in only a part of the name
-        words = [w for w in re.findall(r"[a-z0-9]+", _norm(t["name"])) if len(w) > 3 and not w.isdigit()]
-        if words and all(w in text for w in words[:2]):
-            return t["id"]
-    return None
+        words = [w for w in re.findall(r"[a-z0-9]+", _norm(t["name"])) if w != "series"]
+        if words and all(w in toks for w in words) and len(words) > best_n:
+            best, best_n = t["id"], len(words)
+    return best
 
 
 def understand_rules(message: str, ctx: ChatContext | None = None) -> Understood:
