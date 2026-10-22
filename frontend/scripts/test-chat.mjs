@@ -37,6 +37,7 @@ await step("typing a team question answers with stats and a dashboard button", a
   await page.evaluate(() => sessionStorage.clear());
   await ask(`como está o time ${teamA}?`);
   await page.getByText("Pontos fortes").first().waitFor({ timeout: 60000 });
+  if (await page.getByText("Sugestões (opcional)").count()) throw new Error("suggestions still visible after the first question");
   await page.screenshot({ path: `${out}/team.png`, fullPage: true });
   await page.getByRole("link", { name: /Ver no dashboard/ }).click();
   await page.waitForURL(/\/time\//);

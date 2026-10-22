@@ -142,7 +142,7 @@ export default function ChatPage() {
           </button>
         </div>
         {problem && <p id="chat-problem" role="alert" className="text-sm text-accent">{problem}</p>}
-        {!hideTips && tips.length > 0 && (
+        {!hideTips && msgs.length === 0 && tips.length > 0 && (  // shortcuts only help before the first question
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-fg-muted">Sugestões (opcional)</span>
             {tips.map((t) => <FilterChip key={t} onClick={() => void send(t)}>{t}</FilterChip>)}
