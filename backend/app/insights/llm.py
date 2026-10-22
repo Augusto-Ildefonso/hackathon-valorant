@@ -93,9 +93,15 @@ def refs_ok(text: str, total_rounds: int) -> bool:
 _SECOND_PERSON = re.compile(r"\b(voc[êe]s?|seus?|suas?|teus?|tuas?|te|ti|contigo|convosco)\b", re.IGNORECASE)
 
 
-def addresses_reader(text: str) -> bool:
-    """True when the text speaks to the reader ("você", "sua"): the app is impartial and its texts must stay impersonal."""
-    return bool(_SECOND_PERSON.search(text))
+_DIRECT_ADDRESS = re.compile(r"\b(voc[êe]s?|teus?|tuas?|te|ti|contigo|convosco)\b", re.IGNORECASE)
+
+
+def addresses_reader(text: str, strict: bool = True) -> bool:
+    """True when the text speaks to the reader ("você", "sua"): the app is impartial and its texts must stay impersonal.
+
+    `strict` also flags "seu/sua": right for short insight cards, where it read as the reader's own stats. Long prose about a
+    team (the printable plan) legitimately says "sua defesa" about the team, so it only rejects direct address."""
+    return bool((_SECOND_PERSON if strict else _DIRECT_ADDRESS).search(text))
 
 
 _STAT_TALK = re.compile(r"%|\bn\s*=|\bmediana\b|\bamostra\b", re.IGNORECASE)
@@ -106,8 +112,8 @@ def recites_stats(text: str) -> bool:
     return bool(_STAT_TALK.search(text))
 
 
-def valid(text: str, allowed: set[str], total_rounds: int) -> bool:
-    return numbers_in(text) <= allowed and refs_ok(text, total_rounds) and not addresses_reader(text) and not recites_stats(text)
+def valid(text: str, allowed: set[str], total_rounds: int, strict: bool = True) -> bool:
+    return numbers_in(text) <= allowed and refs_ok(text, total_rounds) and not addresses_reader(text, strict) and not recites_stats(text)
 
 
 # ---- facts ------------------------------------------------------------------------------------------------------------

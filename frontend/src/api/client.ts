@@ -25,5 +25,22 @@ export async function api<T>(path: string, opts?: { query?: Query; body?: unknow
   return (await res.json()) as T;
 }
 
+/** Downloads the printable plan (a text-first PDF). Resolves with how the body was written: "llm" or "rules". */
+export async function downloadPlanPdf(body: unknown): Promise<{ source: string; note: string }> {
+  if (USE_MOCKS) throw new Error("o PDF precisa do backend (modo de mock ativo)");
+  const res = await fetch("/api/plan/report", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
+  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "plano-de-acao.pdf";
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return { source: res.headers.get("X-Report-Source") ?? "rules", note: decodeURIComponent(res.headers.get("X-Report-Note") ?? "") };
+}
+
 /** Image URL for catalog assets (already prefixed with /assets by the backend). */
 export const assetUrl = (url: string | null | undefined) => url ?? undefined;

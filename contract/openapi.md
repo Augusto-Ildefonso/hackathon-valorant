@@ -36,6 +36,7 @@ Frontend types: `frontend/src/api/types.ts` mirrors the models (Stream E keeps t
 | GET `/api/matches/{id}/kills` | `round, player, team` | `KillsResponse` | C |
 | POST `/api/plan` | body `PlanRequest` (`use_llm` optional) | `PlanResponse` (`text_source`, `notes_pt` additive) | D |
 | GET `/api/plan/capabilities` | | `PlanCapabilities` `{llm, model}` | D |
+| POST `/api/plan/report` | body `PlanRequest` (`use_llm` optional) | `application/pdf` attachment; headers `X-Report-Source` (`llm`\|`rules`) and `X-Report-Note` | D |
 
 Additive (Stream D): `GET /api/players/{id}`, `/api/teams/{name}`, `/api/maps/{name}` and `/api/matches/{id}` take `insights=rules|llm` (default `rules`) and return `insights_source` (`rules` | `llm`). With `llm` the model picks and words the insights from a fact packet and the answer is validated against it; when the LLM is off, fails or returns nothing the response is the rule-based one and says `rules`.
 

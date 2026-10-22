@@ -2,6 +2,7 @@
 // (layout from the design by Stream E). Data: POST /api/plan (stub returns a fixture until Stream D ships it).
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
+import { downloadPlanPdf } from "@/api/client";
 import { useMaps, useMeta, usePlan, usePlanCapabilities, useTeams } from "@/api/hooks";
 import type { PlanRequest, PlanResponse, RoundPlan, RoundType, Side } from "@/api/types";
 import { MinimapCanvas } from "@/components/map/MinimapCanvas";
@@ -182,6 +183,22 @@ export default function ActionPlanPage() {
   const [shown, setShown] = useState<PlanResponse | undefined>();
   const [sel, setSel] = useState(1);
   const [showAll, setShowAll] = useState(false);
+  const [pdf, setPdf] = useState<{ busy: boolean; error?: string; note?: string }>({ busy: false });
+
+  /** Downloads the printable dossier of the plan on screen (written by the AI when it is available). */
+  const exportPdf = async () => {
+    if (!shown) return;
+    setPdf({ busy: true });
+    try {
+      const r = await downloadPlanPdf({
+        team_a: shown.team_a.name, team_b: shown.team_b.name, map: shown.map.name, perspective: shown.perspective,
+        rounds_per_half: shown.rounds_per_half, starting_side: shown.starting_side, use_llm: Boolean(caps.data?.llm),
+      });
+      setPdf({ busy: false, note: caps.data?.llm && r.source !== "llm" ? "A IA não conseguiu escrever o texto desta vez: o PDF saiu com o texto padrão do plano." : undefined });
+    } catch (e) {
+      setPdf({ busy: false, error: String(e) });
+    }
+  };
 
   useEffect(() => {  // sensible defaults once the team list is known
     if (!names.length) return;
@@ -336,6 +353,9 @@ export default function ActionPlanPage() {
               {writing && <p className="mt-2 text-xs leading-4 text-cyan">Escrevendo a narrativa com IA… pode levar de 1 a 2 minutos; o plano abaixo continua disponível.</p>}
               {!writing && (data.notes_pt ?? []).filter((n) => n.startsWith("Narrativa por IA")).map((n) => <p key={n} className="mt-2 text-xs leading-4 text-amber">{n}</p>)}
               {plan.isError && <p className="mt-2 text-xs leading-4 text-accent">Não foi possível gerar a narrativa: {String(plan.error)}</p>}
+              {pdf.busy && <p className="mt-2 text-xs leading-4 text-cyan">Montando o PDF{caps.data?.llm ? " com texto escrito pela IA… pode levar de 1 a 2 minutos" : "…"}; o plano continua disponível.</p>}
+              {pdf.note && <p className="mt-2 text-xs leading-4 text-amber">{pdf.note}</p>}
+              {pdf.error && <p className="mt-2 text-xs leading-4 text-accent">Não foi possível gerar o PDF: {pdf.error}</p>}
               {data.narrative_pt && <p className="mt-3 whitespace-pre-line text-sm leading-5 text-fg-secondary">{data.narrative_pt}</p>}
             </div>
             <button
@@ -346,7 +366,13 @@ export default function ActionPlanPage() {
             >
               {writing ? "Escrevendo…" : "Gerar narrativa"}
             </button>
-            <button onClick={() => window.print()} className="rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-secondary hover:text-fg">Exportar PDF</button>
+            <button
+              onClick={exportPdf}
+              disabled={pdf.busy}
+              title={caps.data?.llm ? "Baixa um dossiê em PDF com o plano escrito pela IA (pode levar de 1 a 2 minutos)" : "Baixa um dossiê em PDF com o plano"}
+              className={`rounded-sm border border-border bg-surface-raised px-4 py-2 font-display text-xs font-semibold uppercase tracking-[0.96px] ${pdf.busy ? "text-fg-muted opacity-60" : "text-fg-secondary hover:text-fg"}`}
+            >
+              {pdf.busy ? "Gerando PDF…" : "Exportar PDF"}</button>
           </div>
         </>
       )}

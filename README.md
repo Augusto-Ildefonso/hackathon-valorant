@@ -58,6 +58,8 @@ For a full match (default 12 + 12 rounds, configurable) the planner simulates th
 - **Enemy.** Weak points from the rule engine applied to the opponent, probable site with evidence, and an enemy route (typical positions from real snapshots) shown on a small minimap.
 - **Contingency.** What the next round type becomes if this one is won vs lost, with probability and sample size.
 
+**PDF dossier.** "Exportar PDF" downloads a text-first document, not a copy of the page. The plan's facts and the list of available image slots (overview minimap, the enemy's probable route per site, agent portraits, each round's weapons) go to the AI, which writes the playbook as structured blocks (sections, paragraphs, bullets and image *placeholders*); the code validates every block (numbers must exist in the plan, no statistics recited, no utility/ability talk, no direct address to the reader), fills the placeholders with catalog images, and lays it out with ReportLab. A compact round-by-round table is always appended by code. Without a key, or if the AI fails, a deterministic document with the same layout is produced, so the export always works.
+
 **Known limit, stated in the app:** the files contain no utility, lineup or callout data, so plans cover positioning, timing, roles and economy only.
 
 ---
@@ -138,7 +140,7 @@ backend/app/
                 play_model, and the optional llm layer (llm.py, llm_insights.py)
   routers/      HTTP endpoints         schemas/   Pydantic contract
 backend/tests/  pytest suite (168 tests: loader, metrics, rules, plan, LLM with a fake client, contract)
-backend/scripts/ calibration, coordinate check, insight comparison, showcase picker
+backend/scripts/ calibration, coordinate check, insight comparison, showcase picker, make_report (PDF without a server)
 frontend/src/   pages/, components/{ui,map,layout,home}, api/ (types, hooks, mock)
 frontend/scripts/ Playwright: smoke, demo-flow, shot, round-click, AI-insights checks
 contract/       openapi.md + fixtures      data/   the 336 match JSON files
