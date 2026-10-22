@@ -189,7 +189,7 @@ function RoundMapPanel({ plan, round }: { plan: PlanResponse; round: RoundPlan }
   const empty = !mp || (!mp.routes.length && !mp.zones.length && !holds.length);
   type Row = [string, string, "line" | "dash" | "box" | "square"];
   const own: Row[] = attack
-    ? [["Seta ciano: caminho típico de cada jogador do time (do início ao plante)", C.cyan, "line"]]
+    ? [["Seta ciano: caminho típico de cada jogador do time (da área de saída do ataque, onde os atacantes são vistos mais recuados, até o plante)", C.cyan, "line"]]
     : [["Círculo: posição típica de cada defensor nos primeiros 25 s", C.cyan, "square"], ["Tracejado violeta: retake do anchor/suporte até o plante", C.violet, "dash"]];
   const legend: Row[] = [
     ...own,
@@ -252,7 +252,7 @@ function RoundMapPanel({ plan, round }: { plan: PlanResponse; round: RoundPlan }
                 })}
               </div>
               <p className="text-[11px] leading-[14px] text-fg-muted">
-                Cada caminho junta os centros das posições dos jogadores por faixa de tempo (0–20, 20–40 e 40+ s), medidas nos momentos de abate dos rounds do time no mapa. São jogadas típicas, não prescrições; não há dados de utilitários.
+                Cada caminho vai da área de saída do ataque ao plante, seguindo corredores do minimapa (nunca atravessa paredes) e passando pelas posições típicas do jogador, medidas nos momentos de abate dos rounds do time no mapa. Os arquivos não trazem o ponto de nascimento, então a saída é onde os atacantes são vistos mais recuados no início dos rounds. São jogadas típicas, não prescrições; não há dados de utilitários.
               </p>
             </>
           )}

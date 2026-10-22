@@ -10,6 +10,7 @@ input untouched. Only the supplied catalog image is used.
 from __future__ import annotations
 
 import heapq
+from collections import deque
 from functools import lru_cache
 
 import numpy as np
@@ -22,6 +23,8 @@ N = 256                # grid resolution (cell = 4 px of the 1024 px minimap)
 MAX_CLEAR = 4          # clearance is measured up to this many cells
 WALL_COST = 3.0        # extra cost multiplier right next to a wall
 SNAP_RADIUS = 24       # cells searched to move a waypoint out of a wall
+ATTRACT_COST = 6.0     # cells without observed traffic cost up to (1 + this) times more than the player's own lane
+HEAT_BLUR = 5          # box-blur radius (cells) when turning position snapshots into a lane heat grid
 
 Pt = tuple[float, float]
 _STEPS = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
@@ -66,7 +69,8 @@ class Grid:
                         best, best_d = (rr, cc), d
         return best
 
-    def astar(self, a: tuple[int, int], b: tuple[int, int]) -> list[tuple[int, int]] | None:
+    def astar(self, a: tuple[int, int], b: tuple[int, int], attract: np.ndarray | None = None) -> list[tuple[int, int]] | None:
+        """Cheapest floor path; `attract` (0..1 per cell) makes cells with observed traffic cheaper (a player's own lane)."""
         if a == b:
             return [a]
         clear = self.clear
@@ -93,11 +97,12 @@ class Grid:
                     continue  # no cutting wall corners
                 step = 1.4142 if dr and dc else 1.0
                 near = max(0, MAX_CLEAR - int(clear[nr, nc])) / MAX_CLEAR  # 0 in open floor, up to 0.75 by a wall
-                cost = g[cur] + step * (1 + WALL_COST * near)
+                lane = 1.0 if attract is None else 1 + ATTRACT_COST * (1 - float(attract[nr, nc]))
+                cost = g[cur] + step * (1 + WALL_COST * near) * lane
                 if cost < g.get((nr, nc), 1e18):
                     g[(nr, nc)] = cost
                     prev[(nr, nc)] = cur
-                    h = max(abs(nr - b[0]), abs(nc - b[1])) + 0.4142 * min(abs(nr - b[0]), abs(nc - b[1]))
+                    h = max(abs(nr - b[0]), abs(nc - b[1])) + 0.4142 * min(abs(nr - b[0]), abs(nc - b[1]))  # admissible: cost per step >= 1
                     heapq.heappush(heap, (cost + h, (nr, nc)))
         return None
 
@@ -127,11 +132,54 @@ def grid(map_name: str) -> Grid | None:
     return Grid(floor)
 
 
+def walking_distance(map_name: str, sources: list[Pt]) -> np.ndarray | None:
+    """Walking distance in cells from the nearest of `sources` to every floor cell (-1 = unreachable or wall)."""
+    g = grid(map_name)
+    if g is None:
+        return None
+    dist = np.full((N, N), -1.0)
+    queue: deque[tuple[int, int]] = deque()
+    for p in sources:
+        c = g.snap(p)
+        if c is not None:
+            dist[c] = 0
+            queue.append(c)
+    while queue:
+        r, c = queue.popleft()
+        for dr, dc in _STEPS:
+            rr, cc = r + dr, c + dc
+            if 0 <= rr < N and 0 <= cc < N and g.clear[rr, cc] >= 1 and dist[rr, cc] < 0:
+                dist[rr, cc] = dist[r, c] + (1.4142 if dr and dc else 1.0)
+                queue.append((rr, cc))
+    return dist
+
+
+def cell_of(map_name: str, p: Pt) -> tuple[int, int] | None:
+    g = grid(map_name)
+    return None if g is None else g.cell(p)
+
+
 def _to_pt(cell: tuple[int, int]) -> Pt:
     return (cell[1] + 0.5) / N, (cell[0] + 0.5) / N
 
 
-def route(map_name: str, points: list[Pt]) -> list[Pt]:
+def heat_grid(uv: list[Pt]) -> np.ndarray | None:
+    """Lane preference 0..1 per cell from observed positions (blurred counts); None when there are too few points."""
+    if len(uv) < 5:
+        return None
+    h = np.zeros((N, N))
+    for u, v in uv:
+        h[min(max(int(v * N), 0), N - 1), min(max(int(u * N), 0), N - 1)] += 1
+    k = 2 * HEAT_BLUR + 1
+    for axis in (0, 1):
+        for _ in range(2):
+            c = np.cumsum(np.pad(h, [(HEAT_BLUR + 1, HEAT_BLUR) if a == axis else (0, 0) for a in (0, 1)]), axis=axis)
+            h = (np.take(c, range(k, c.shape[axis]), axis=axis) - np.take(c, range(0, c.shape[axis] - k), axis=axis)) / k
+    top = np.percentile(h[h > 0], 90) if (h > 0).any() else 0
+    return None if top <= 0 else np.clip(h / top, 0, 1)
+
+
+def route(map_name: str, points: list[Pt], attract: np.ndarray | None = None) -> list[Pt]:
     """Waypoints through `points` that follow walkable floor. Falls back to `points` when it cannot."""
     g = grid(map_name)
     if g is None or len(points) < 2:
@@ -141,7 +189,7 @@ def route(map_name: str, points: list[Pt]) -> list[Pt]:
         return points
     path: list[tuple[int, int]] = []
     for a, b in zip(cells, cells[1:]):
-        seg = g.astar(a, b)
+        seg = g.astar(a, b, attract)
         if seg is None:
             return points
         path += seg if not path else seg[1:]

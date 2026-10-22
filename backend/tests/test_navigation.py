@@ -57,6 +57,19 @@ def test_maps_without_a_minimap_are_returned_untouched():
 
 
 @pytest.mark.parametrize("map_name", ["Ascent", "Haven", "Lotus", "Split"])
+def test_attack_routes_run_from_the_attackers_start_to_the_site(full_store, map_name):
+    from app.insights import map_plan as mp
+
+    plants = mp.plant_points(full_store, map_name)
+    start = mp.attacker_start(full_store, map_name, plants)
+    assert start is not None
+    dist = nav.walking_distance(map_name, list(plants.values()))
+    d_start = dist[nav.cell_of(map_name, start)]
+    # the start is on the attacking side: well away from every site, never at one
+    assert d_start > 0.3 * dist.max() and d_start > 40
+
+
+@pytest.mark.parametrize("map_name", ["Ascent", "Haven", "Lotus", "Split"])
 def test_real_plans_do_not_cross_walls(full_store, map_name):
     teams = full_store.matches[full_store.matches.map_name == map_name]
     counts = (teams.team_a.value_counts().add(teams.team_b.value_counts(), fill_value=0)).sort_values(ascending=False)

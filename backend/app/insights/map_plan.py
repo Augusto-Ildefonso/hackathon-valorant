@@ -16,7 +16,7 @@ from ..schemas.common import Point, Stat
 from ..schemas.map import HeatLayer, PlantPoint
 from ..schemas.plan import MapPlan, PlanMarker, PlanRoute, PlanZone
 from .core import f_pct
-from .navigation import route, snap_point
+from .navigation import cell_of, heat_grid, route, snap_point, walking_distance
 from .rules_map import _events_and_layers, zone_name
 from .scouting import PlayerScout
 from .zones import find_zones
@@ -74,8 +74,46 @@ def _path(d: pd.DataFrame) -> tuple[list[tuple[float, float]], int, int | None, 
     return pts, used, t_first, t_last
 
 
+START_WINDOW_S = 25     # attacker snapshots up to here count as "early in the round"
+START_FAR_PCT = 90      # ... and the start is where the farthest 10% (by walking distance from the sites) are seen
+MIN_START_SNAPS = 30
+
+
+def attacker_start(full: Store, map_name: str, plants: dict[str, tuple[float, float]]) -> tuple[float, float] | None:
+    """Where attackers are seen farthest back (walking distance from the sites) early in their rounds on the map.
+
+    The files carry no spawn coordinates and snapshots exist only at kill moments, so this is the farthest-back place
+    attackers are actually observed early, not the spawn itself; routes start there so they show the approach to the site.
+    """
+    r = _map_rounds(full, map_name)[["match_id", "round_num"]]
+    k = full.kills.merge(r, on=["match_id", "round_num"])
+    k = k[k.time_in_round_ms < START_WINDOW_S * 1000]
+    dist = walking_distance(map_name, list(plants.values()))
+    if k.empty or dist is None:
+        return None
+    side = full.round_player_stats[full.round_player_stats.side == "attack"][["match_id", "round_num", "puuid"]]
+    attackers = set(zip(side.match_id, side.round_num, side.puuid))
+    rows = [(loc["x"], loc["y"]) for mid, rn, locs in zip(k.match_id, k.round_num, k.player_locations)
+            for loc in locs if (mid, rn, loc["puuid"]) in attackers]
+    if len(rows) < MIN_START_SNAPS:
+        return None
+    a = np.array(rows, dtype=float)
+    u, v = to_minimap_arrays(map_name, a[:, 0], a[:, 1])
+    ok = np.isfinite(u) & np.isfinite(v)
+    u, v = u[ok], v[ok]
+    d = np.array([dist[cell_of(map_name, (x, y))] for x, y in zip(u, v)])
+    keep = d >= 0
+    if keep.sum() < MIN_START_SNAPS:
+        return None
+    far = keep & (d >= np.percentile(d[keep], START_FAR_PCT))
+    fu, fv = u[far], v[far]
+    i = int(np.argmin((fu - np.median(fu)) ** 2 + (fv - np.median(fv)) ** 2))  # an observed position, so it is on floor
+    return float(fu[i]), float(fv[i])
+
+
 def attack_routes(full: Store, team: str, assigned: list[tuple[PlayerScout, str]], map_name: str, site: str,
-                  plants: dict[str, tuple[float, float]]) -> tuple[list[PlanRoute], str | None]:
+                  plants: dict[str, tuple[float, float]], spawn: tuple[float, float] | None = None) -> tuple[list[PlanRoute], str | None]:
+    """One route per player from the attackers' start to the plant, along that player's own observed lane."""
     r = _map_rounds(full, map_name)
     mine = r[r.attacker_team == team]
     on_site = mine[mine.plant_site == site]
@@ -87,11 +125,19 @@ def attack_routes(full: Store, team: str, assigned: list[tuple[PlayerScout, str]
     snaps = _snaps(full, map_name, on_site, {p.puuid for p, _ in assigned})
     routes: list[PlanRoute] = []
     for p, role in assigned:
-        pts, used, t0, t1 = _path(snaps[snaps.puuid == p.puuid])
-        if len(pts) < 1:
+        mine_s = snaps[snaps.puuid == p.puuid]
+        pts, used, t0, t1 = _path(mine_s)
+        if len(pts) < 1 or site not in plants:
             continue
-        if site in plants and len(pts) >= 1:
-            pts.append(plants[site])
+        if spawn is not None:
+            # start -> plant, preferring cells where this player was actually seen (his lane)
+            # (the later time buckets of the player are kept as waypoints: that is where lanes differ between players)
+            via = _path(mine_s[mine_s.t >= BUCKETS_S[1][0]])[0]
+            pts = route(map_name, [spawn, *via, plants[site]], heat_grid(list(zip(mine_s.u, mine_s.v))))
+            t0 = 0
+        else:
+            pts = pts + [plants[site]]
+            pts = route(map_name, pts)
         if len(pts) < 2:
             continue
         routes.append(PlanRoute(
@@ -184,6 +230,13 @@ def blind_zones(full: Store, map_name: str, plants_pts: dict[str, tuple[float, f
     return out
 
 
+def _spawn(full: Store, map_name: str, cache: dict) -> tuple[float, float] | None:
+    key = ("spawn", map_name)
+    if key not in cache:
+        cache[key] = attacker_start(full, map_name, plant_points(full, map_name))
+    return cache[key]
+
+
 def _on_floor(r: PlanRoute, map_name: str, cache: dict) -> PlanRoute:
     """The same route re-drawn through walkable floor (see `navigation`); memoized per waypoint list."""
     raw = tuple((p.x, p.y) for p in r.points)
@@ -217,7 +270,7 @@ def build_map_plan(full: Store, team: str, enemy: str, map_name: str, side: str,
         if side == "attack":
             ck = ("att", team, site, tuple(p.puuid for p, _ in assigned))
             if ck not in cache:
-                cache[ck] = attack_routes(full, team, assigned, map_name, site, plants)
+                cache[ck] = attack_routes(full, team, assigned, map_name, site, plants, _spawn(full, map_name, cache))
             routes, note = cache[ck]
         else:
             ck = ("def", team, site, tuple(p.puuid for p, _ in assigned))
@@ -226,10 +279,15 @@ def build_map_plan(full: Store, team: str, enemy: str, map_name: str, side: str,
             m, routes, note = cache[ck]
             markers += m
     if len(enemy_route) >= 2:
+        if side_en == "attack":  # the enemy attacks: draw it from the attackers' start as well
+            sp = _spawn(full, map_name, cache)
+            if sp is not None:
+                enemy_route = [Point(x=sp[0], y=sp[1])] + list(enemy_route)
         routes = list(routes) + [PlanRoute(
             kind="enemy", label=f"{enemy} · {'ataque provável' if side_en == 'attack' else 'defesa provável'}", points=enemy_route,
             evidence=_stat(enemy_snaps))]
-    routes = [_on_floor(r, map_name, cache) for r in routes]
+    # attack routes are already routed (start -> plant along each player's lane); retake and enemy routes still need it
+    routes = [r if r.kind == "attack" else _on_floor(r, map_name, cache) for r in routes]
     markers = [_hold_on_floor(m, map_name) if m.kind == "hold" else m for m in markers]
     zk = ("zone", enemy, side_en)
     if zk not in cache:
