@@ -206,7 +206,7 @@ def _cache_key(files: list[Path]) -> str:
 
 def load_store(data_dir: Path = DATA_DIR, use_cache: bool = True, workers: int | None = None) -> Store:
     """Load all JSON files under `data_dir` (recursive, `.DS_Store` ignored) with a disk cache."""
-    files = sorted(data_dir.rglob("*.json"))
+    files = sorted(f for f in data_dir.rglob("*.json") if not f.name.startswith("."))  # `._x.json` are macOS tar metadata, not matches
     if not files:
         raise FileNotFoundError(f"No match files under {data_dir}")
     cache = CACHE_DIR / f"store-{_cache_key(files)}.pkl"

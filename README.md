@@ -137,6 +137,10 @@ Models are tried in order (`gemini-3-flash-preview`, `gemini-flash-latest`, `gem
 
 ---
 
+### Deployed instance (AWS)
+
+A demo runs on a single EC2 `t3.small` in `us-east-2` (nginx serves `frontend/dist` and proxies `/api` and the catalog `/assets` to uvicorn; systemd unit `vavagym`; port 80 only). The public build runs **without the AI layer** (`VAVAGYM_LLM=0`, no key on the server). Peak backend memory is about 700 MB. When bundling the app on macOS use `COPYFILE_DISABLE=1 tar czf …` so no `._*` metadata files are packed. Resources are tagged `project=vavagym`; details and teardown steps are in `.claude/plans/mvp-plan.md`.
+
 ## Tech stack
 
 - **Frontend:** React 18, Vite 6, TypeScript, Tailwind CSS v4, TanStack Query, React Router. Dark, VALORANT-inspired theme with original styling (no Riot logos or fonts). Charts are SVG; the minimap is a canvas component with arrows, routes, zones and heat.
