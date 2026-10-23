@@ -69,10 +69,10 @@ export default function PlayerPage() {
         <Link to="/jogadores" className="hover:text-fg">Jogadores</Link> › {p.player.riot_id}
       </p>
 
-      <div className="flex items-center gap-5 rounded-md border border-border bg-surface px-6 py-5">
+      <div className="flex flex-wrap items-center gap-5 rounded-md border border-border bg-surface px-6 py-5">
         <div className="flex size-[72px] shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-display text-[32px] font-bold leading-10 text-accent">{initials}</div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h1 className="truncate font-display text-[32px] font-bold leading-10 text-fg">{p.player.riot_id}</h1>
+          <h1 className="truncate font-display text-2xl font-bold leading-8 text-fg sm:text-[32px] sm:leading-10">{p.player.riot_id}</h1>
           <div className="flex flex-wrap items-center gap-3 text-sm leading-5">
             {team && <Link to={`/time/${encodeURIComponent(team.name)}`}><Badge tone="neutral">{team.name}</Badge></Link>}
             {fav && (
@@ -92,7 +92,7 @@ export default function PlayerPage() {
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 m-grid2">
         <StatCard label="K/D" value={num(stats.kd.value)} lowSample={stats.kd.low_sample} footnote={`${int(stats.kills)} abates · ${int(stats.deaths)} mortes`} />
         <StatCard label="% Headshot" value={pct(stats.hs_pct.value)} footnote={`de ${int(stats.shots)} acertos`} />
         <StatCard label="ADR" value={num(stats.adr.value, 0)} footnote="dano médio por round" />
@@ -101,7 +101,7 @@ export default function PlayerPage() {
         <StatCard label="Assistências" value={num(stats.assists / Math.max(stats.rounds, 1))} footnote="por round" />
       </div>
 
-      <div className="flex items-stretch gap-4">
+      <div className="flex items-stretch gap-4 stack">
         <Panel className="flex-1" title="Classificação por função" subtitle="Heurísticas comportamentais calculadas a partir dos dados">
           <DataTable
             rows={roles}
@@ -157,7 +157,7 @@ export default function PlayerPage() {
         </div>
       </div>
 
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 stack">
         <Panel className="flex-[690]" title="Desempenho por arma comprada" subtitle="Rounds em que a arma foi comprada (eco, force e full buy)">
           <DataTable
             rows={weapons}
@@ -193,7 +193,7 @@ export default function PlayerPage() {
       </div>
 
       <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && p.insights_source !== "llm"} source={p.insights_source} />
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel title="Pontos fortes"><InsightList insights={p.insights} kinds={["strength"]} /></Panel>
         <Panel title="Pontos fracos"><InsightList insights={p.insights} kinds={["weakness"]} /></Panel>
         <Panel title="Recomendações de treino"><InsightList insights={p.insights} kinds={["tip"]} /></Panel>

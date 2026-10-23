@@ -29,7 +29,9 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, emptyText = "N
     style: c.width ? { width: c.width } : undefined,
   });
   return (
-    <div className="flex w-full flex-col">
+    // on a phone the table keeps a readable width and scrolls sideways inside its panel instead of squeezing the columns
+    <div data-scroll-x className="w-full overflow-x-auto">
+    <div className="flex w-full min-w-[560px] flex-col lg:min-w-0">
       <div className="flex items-center gap-3 border-b border-border-strong py-2">
         {columns.map((c) => (
           <div key={c.key} {...cell(c)}>
@@ -61,6 +63,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, emptyText = "N
           ))}
         </div>
       ))}
+    </div>
     </div>
   );
 }

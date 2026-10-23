@@ -1,4 +1,5 @@
 // App shell and routes (Figma "Screen / *": sidebar + top bar + content). Owner: Stream E; each page file is owned by its stream.
+import { useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
@@ -12,12 +13,13 @@ import PlayerPage from "@/pages/PlayerPage";
 import TeamPage from "@/pages/TeamPage";
 
 export default function App() {
+  const [menu, setMenu] = useState(false);
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar open={menu} onClose={() => setMenu(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar />
-        <main className="flex flex-col gap-6 p-8">
+        <TopBar onMenu={() => setMenu(true)} />
+        <main className="flex flex-col gap-4 p-4 sm:p-6 lg:gap-6 lg:p-8">
           <Routes>
             <Route path="/" element={<ChatPage />} />
             <Route path="/campeonatos" element={<HomePage />} />

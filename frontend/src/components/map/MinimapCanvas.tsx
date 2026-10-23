@@ -272,16 +272,16 @@ export function MinimapCanvas({ map, size = 640, heat = [], points = [], lines =
     );
   }
   return (
-    <div className="relative border border-border bg-black" style={{ width: size, height: size }}>
+    <div className="relative aspect-square w-full border border-border bg-black" style={{ maxWidth: size }}>
       <img
         src={map.minimap_url}
         alt={`Minimapa de ${map.name}`}
         width={size}
         height={size}
-        className="absolute inset-0"
+        className="absolute inset-0 h-full w-full"
         style={heat.length ? { filter: "brightness(0.55)" } : undefined} /* dim the map so the heat stands out */
       />
-      <canvas ref={ref} width={size} height={size} className="absolute inset-0" />
+      <canvas ref={ref} width={size} height={size} className="absolute inset-0 h-full w-full" />
     </div>
   );
 }

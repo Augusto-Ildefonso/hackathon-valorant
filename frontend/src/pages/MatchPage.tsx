@@ -57,7 +57,7 @@ function Timeline({ r, selected, onSelect }: { r: MatchReport; selected: number;
       title="Linha do tempo dos rounds"
       subtitle="Cada bloco mostra quem venceu o round e como terminou"
       aside={
-        <div className="flex items-center gap-4 text-[11px] text-fg-secondary">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-fg-secondary">
           <span><span className="mr-1 inline-block size-[10px] rounded-[2px] bg-cyan" />{r.team_a.team.name}</span>
           <span><span className="mr-1 inline-block size-[10px] rounded-[2px] bg-amber" />{r.team_b.team.name}</span>
           <span className="text-fg-muted">E elim. · P detonação · D desarme · T tempo</span>
@@ -134,7 +134,7 @@ function Replay({ r, round, setRound }: { r: MatchReport; round: number; setRoun
       subtitle={`Round ${round} · selecione um abate para ver killer, vítima e trajetória`}
       aside={<div className="flex gap-2">{chips.map((n) => <FilterChip key={n} on={n === round} onClick={() => setRound(n)}>R{n}</FilterChip>)}</div>}
     >
-      <div className="flex items-start gap-5">
+      <div className="flex items-start gap-5 stack">
         <div className="flex shrink-0 flex-col gap-2">
           {data && (
             <MinimapCanvas
@@ -148,7 +148,7 @@ function Replay({ r, round, setRound }: { r: MatchReport; round: number; setRoun
               ] : []}
             />
           )}
-          <div className="flex gap-4 text-[11px] text-fg-secondary">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-fg-secondary">
             <span><span className="mr-1 inline-block size-2 rounded-full bg-cyan" />{r.team_a.team.name}</span>
             <span><span className="mr-1 inline-block size-2 rounded-full bg-amber" />{r.team_b.team.name}</span>
             <span><span className="mr-1 inline-block size-2 rounded-full bg-accent" />Vítima</span>
@@ -213,9 +213,9 @@ export default function MatchPage() {
       </p>
 
       <h1 className="sr-only">{r.team_a.team.name} × {r.team_b.team.name} em {r.map.name}</h1>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6 rounded-md border border-border bg-surface px-8 py-6">
-        <div className="flex flex-col items-end gap-1">
-          <Link to={`/time/${encodeURIComponent(r.team_a.team.name)}`} className="font-display text-[32px] font-bold leading-10 text-fg hover:text-accent">{r.team_a.team.name}</Link>
+      <div className="grid grid-cols-1 items-center gap-4 rounded-md border border-border bg-surface px-4 py-5 sm:grid-cols-[1fr_auto_1fr] sm:gap-6 sm:px-8 sm:py-6">
+        <div className="flex flex-col items-center gap-1 sm:items-end">
+          <Link to={`/time/${encodeURIComponent(r.team_a.team.name)}`} className="font-display text-2xl font-bold leading-8 text-fg hover:text-accent sm:text-[32px] sm:leading-10">{r.team_a.team.name}</Link>
           <Badge tone={aWon ? "cyan" : "amber"}>{aWon ? "Vencedor" : "Derrota"}</Badge>
         </div>
         <div className="flex flex-col items-center gap-1">
@@ -228,8 +228,8 @@ export default function MatchPage() {
             {r.map.name} · {Math.round(r.duration_ms / 60000)} min · {dateBR(r.date)} · {tournamentLabel(r.tournament, r.phase)}
           </p>
         </div>
-        <div className="flex flex-col items-start gap-1">
-          <Link to={`/time/${encodeURIComponent(r.team_b.team.name)}`} className="font-display text-[32px] font-bold leading-10 text-fg hover:text-accent">{r.team_b.team.name}</Link>
+        <div className="flex flex-col items-center gap-1 sm:items-start">
+          <Link to={`/time/${encodeURIComponent(r.team_b.team.name)}`} className="font-display text-2xl font-bold leading-8 text-fg hover:text-accent sm:text-[32px] sm:leading-10">{r.team_b.team.name}</Link>
           <Badge tone={aWon ? "amber" : "cyan"}>{aWon ? "Derrota" : "Vencedor"}</Badge>
         </div>
       </div>
@@ -252,7 +252,7 @@ export default function MatchPage() {
       </div>
 
       <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && r.insights_source !== "llm"} source={r.insights_source} />
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 stack">
         <Panel className="flex-1" title={r.team_a.team.name} subtitle="Melhorias sugeridas com base nesta partida"><InsightList insights={r.insights_a} /></Panel>
         <Panel className="flex-1" title={r.team_b.team.name} subtitle="Melhorias sugeridas com base nesta partida"><InsightList insights={r.insights_b} /></Panel>
       </div>

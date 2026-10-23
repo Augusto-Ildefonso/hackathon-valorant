@@ -49,6 +49,14 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Phones and small tablets (below the `lg` breakpoint, 1024px): multi-column rows stack and card rows become a 2-column grid. */
+@media (max-width: 1023.98px) {
+  .stack { flex-direction: column; align-items: stretch; }
+  .stack > * { width: 100% !important; flex: none !important; min-width: 0; }
+  .m-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .m-grid2 > * { min-width: 0; }
+}
+
 /* visible keyboard focus everywhere (accessibility) */
 :focus-visible {
   outline: 2px solid var(--color-accent);

@@ -90,7 +90,7 @@ function RoundDetail({ plan, round, prev }: { plan: PlanResponse; round: RoundPl
         </div>
       }
     >
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-4">
           <p className={label}>Economia projetada</p>
           <div className="flex flex-col">
@@ -237,7 +237,7 @@ export default function ActionPlanPage() {
     <>
       <PageHeader title="Plano de Ação" subtitle="Planejamento pré-partida com base em dados históricos. Escolha dois times e um mapa; o plano é gerado para a perspectiva selecionada." />
 
-      <div className="flex items-stretch gap-3 rounded-md border border-border bg-surface p-5">
+      <div className="stack flex items-stretch gap-3 rounded-md border border-border bg-surface p-5">
         <Picker title="Time A" value={a} sub={sub(a)} options={teamOpts} onChange={setA} ring="border-cyan" />
         <button onClick={() => { setA(b); setB(a); }} aria-label="Trocar times" className="shrink-0 self-center rounded-sm border border-border bg-surface-raised px-3 py-2 text-fg-secondary hover:text-fg">⇄</button>
         <Picker title="Time B (inimigo)" value={b} sub={sub(b)} options={teamOpts} onChange={setB} ring="border-amber" />
@@ -254,7 +254,7 @@ export default function ActionPlanPage() {
         {([["a", a], ["b", b]] as const).map(([p, n]) => (
           <button key={p} onClick={() => { setPersp(p); run(p); }} className={`rounded-sm border px-4 py-2 text-sm font-medium ${persp === p ? "border-accent bg-surface-accent text-fg" : "border-border bg-surface text-fg-secondary"}`}>{n || "—"}</button>
         ))}
-        <span className="ml-auto text-[11px] text-fg-muted">
+        <span className="text-[11px] text-fg-muted sm:ml-auto">
           {info(a) && info(b) ? `Base de dados: ${info(a)!.matches} partidas do time · ${info(b)!.matches} do adversário${mapInfo ? ` · ${mapInfo.matches} no mapa` : ""} · ` : ""}
           {data?.text_source === "llm" ? "texto reescrito por IA a partir dos fatos calculados" : "gerado por regras com evidências"}
         </span>
@@ -270,9 +270,9 @@ export default function ActionPlanPage() {
 
       {data && round && (
         <>
-          <div className="flex items-stretch gap-4">
+          <div className="flex items-stretch gap-4 stack">
             <Panel className="flex-1" title="Agentes recomendados" subtitle={`Composição sugerida para ${forTeam} em ${data.map.name}`}>
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {data.agents.map((g) => (
                   <div key={g.agent.id} className="flex flex-col gap-2 rounded-sm border border-border bg-surface-raised/50 p-3">
                     <AgentIcon agent={g.agent} size={48} />
@@ -304,7 +304,7 @@ export default function ActionPlanPage() {
           <Panel
             title="Linha do tempo da partida"
             subtitle={`Plano para ${forTeam} · cenário base: o resultado mais provável de cada round`}
-            aside={<div className="flex gap-2">{(["pistol", "eco", "semi_eco", "force", "full_buy"] as RoundType[]).map((t) => <Badge key={t} tone={TYPE_TONE[t]}>{ROUND_TYPE_PT[t]}</Badge>)}</div>}
+            aside={<div className="flex flex-wrap gap-2">{(["pistol", "eco", "semi_eco", "force", "full_buy"] as RoundType[]).map((t) => <Badge key={t} tone={TYPE_TONE[t]}>{ROUND_TYPE_PT[t]}</Badge>)}</div>}
           >
             {([1, 2] as const).map((h) => half(h).length > 0 && (
               <div key={h} className="flex flex-col gap-2">
@@ -346,7 +346,7 @@ export default function ActionPlanPage() {
             )}
           </Panel>
 
-          <div className="flex items-center gap-4 rounded-md border border-border bg-surface p-5">
+          <div className="flex flex-wrap items-center gap-4 rounded-md border border-border bg-surface p-5">
             <div className="min-w-0 flex-1">
               <h2 className="font-display text-base font-semibold text-fg">Narrativa de treinador (opcional)</h2>
               <p className="text-xs leading-4 text-fg-muted">Reescreve o plano em linguagem natural usando apenas os fatos e números acima. O plano estruturado continua visível.</p>

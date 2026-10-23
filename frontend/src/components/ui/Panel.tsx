@@ -6,8 +6,8 @@ export function Panel({ title, subtitle, aside, children, className = "" }: {
   title: string; subtitle?: string; aside?: ReactNode; children: ReactNode; className?: string;
 }) {
   return (
-    <section className={`flex min-w-0 flex-col gap-4 rounded-md border border-border bg-surface p-5 ${className}`}>
-      <div className="flex items-center gap-3">
+    <section className={`flex min-w-0 flex-col gap-4 rounded-md border border-border bg-surface p-4 sm:p-5 ${className}`}>
+      <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-semibold leading-[26px] text-fg">{title}</h2>
           {subtitle && <p className="text-xs leading-4 text-fg-muted">{subtitle}</p>}

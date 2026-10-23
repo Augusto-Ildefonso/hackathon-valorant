@@ -20,7 +20,7 @@ export function InsightModeBar({ mode, onChange, loading, source }: InsightModeB
   const fellBack = mode === "llm" && !loading && source !== "llm";
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="font-display text-xs font-semibold uppercase tracking-[0.96px] text-fg-muted">Insights por</span>
         <FilterChip on={mode === "rules"} onClick={() => onChange("rules")}>Regras</FilterChip>
         <FilterChip
@@ -32,7 +32,7 @@ export function InsightModeBar({ mode, onChange, loading, source }: InsightModeB
         >
           {loading ? "Gerando análise…" : "Análise por IA"}
         </FilterChip>
-        <span className="ml-auto text-[11px] text-fg-muted">Regras: limiares fixos, instantâneas · IA: mesmos fatos, números validados, 20 s a 2 min</span>
+        <span className="text-[11px] text-fg-muted sm:ml-auto">Regras: limiares fixos, instantâneas · IA: mesmos fatos, números validados, 20 s a 2 min</span>
       </div>
       {loading && <p className="text-xs leading-4 text-cyan">Gerando a análise por IA… pode levar de 20 s a 2 minutos; os insights por regras continuam na tela.</p>}
       {fellBack && <p className="text-xs leading-4 text-amber">A análise por IA não ficou disponível agora (cota ou falha do modelo): mostrando os insights por regras.</p>}

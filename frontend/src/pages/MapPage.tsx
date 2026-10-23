@@ -58,7 +58,7 @@ export default function MapPage() {
 
       {m && (
         <>
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-4 stack">
             <Panel
               className="flex-[680]"
               title="Mapa tático"
@@ -78,7 +78,7 @@ export default function MapPage() {
                   points={layers.has("plants") ? m.plants.map((p) => ({ point: p.point, kind: "plant" as const, label: p.site })) : []}
                 />
                 {m.map.has_minimap && (
-                  <div className="flex gap-4 text-[11px] text-fg-secondary">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-fg-secondary">
                     <span><span className="mr-1 inline-block size-2 rounded-full bg-accent" />Morte</span>
                     <span><span className="mr-1 inline-block size-2 rounded-full bg-amber" />Plante</span>
                     <span><span className="mr-1 inline-block size-2 rounded-full bg-cyan" />Zona descoberta</span>
@@ -125,7 +125,7 @@ export default function MapPage() {
 
           <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && m.insights_source !== "llm"} source={m.insights_source} />
           <Panel title="Pontos cegos" subtitle="Duas camadas: zonas perigosas (mortes ≫ abates) e zonas descobertas (pouco cobertas, mas de onde saem abates inimigos)">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               {m.insights.length === 0 && <p className="col-span-3 text-sm text-fg-muted">Sem dados suficientes para sugerir.</p>}
               {m.insights.map((i) => <InsightCard key={i.id} insight={i} />)}
             </div>
@@ -142,7 +142,7 @@ function Usage({ rows, color, unknown, kind }: {
   return (
     <div className="flex flex-col">
       {rows.map((r) => (
-        <div key={r.id} className="flex items-center gap-3 border-b border-border py-3 text-sm">
+        <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border py-3 text-sm">
           <span className="flex w-[186px] shrink-0 items-center gap-2 font-semibold text-fg">
             <CatalogIcon url={r.icon_url} name={r.name ?? unknown} kind={kind} w={kind === "agent" ? 24 : 40} h={kind === "agent" ? 24 : 16} />
             <span className="truncate">{r.name ?? unknown}</span>

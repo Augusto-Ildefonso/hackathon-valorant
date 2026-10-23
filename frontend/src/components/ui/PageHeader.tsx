@@ -9,9 +9,9 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   return (
-    <header className="flex items-end justify-between gap-4">
+    <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
       <div className="flex min-w-0 flex-col gap-1">
-        <h1 className="font-display text-[28px] font-bold leading-[34px] text-fg">{title}</h1>
+        <h1 className="font-display text-2xl font-bold leading-[30px] text-fg sm:text-[28px] sm:leading-[34px]">{title}</h1>
         {subtitle && <p className="text-sm leading-5 text-fg-secondary">{subtitle}</p>}
       </div>
       {actions}

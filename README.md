@@ -6,6 +6,8 @@ Built for the **SEMCOMP / AcadArena Hackathon** (delivery 23/10/2026). It analys
 tournaments (Rush Series and Univavá): 6,618 rounds, 46,753 kills and 411 players across 68 teams. The UI is in Portuguese (pt-BR);
 code, API and docs are in English.
 
+**Live demo: http://3.16.109.205** (AWS, HTTP; see [Deployed instance](#deployed-instance-aws)). Works on phones and desktops.
+
 ![Campeonatos (the former Home, now at /campeonatos)](docs/screens/1-home.png)
 
 ---
@@ -121,6 +123,7 @@ Open <http://localhost:5173>.
 | `make test` | Backend `pytest` + frontend `tsc` |
 | `make fixtures` | Regenerates the contract fixtures |
 | `cd frontend && npm run smoke` | Browser smoke test: every route, at 1440 and 1024 px (needs `make dev` running) |
+| `cd frontend && node scripts/mobile-check.mjs [dir] [width]` | Phone check: every route at 390 px (or the given width): no horizontal overflow, drawer menu works, screenshots saved |
 | `cd frontend && node scripts/test-chat.mjs` | Chat flow: ask, open the dashboard from the answer, deep-linked plan, input validation (needs `make dev`) |
 | `cd frontend && npm run demo-flow [dir]` | Clicks through the demo storyline and saves screenshots |
 
@@ -132,7 +135,7 @@ cp .env.example .env
 ```
 
 Restart `make dev`. The key can also come from the environment (`GEMINI_API_KEY` or `GOOGLE_API_KEY`); a real environment variable wins over `.env`, which is git-ignored.
-Models are tried in order (`gemini-3-flash-preview`, `gemini-flash-latest`, `gemini-3.5-flash`, then Gemma 4 as quota-independent fallbacks);
+Only three models are used, tried in order: `gemini-3.1-flash-lite` (fast), then `gemma-4-31b-it` and `gemma-4-26b-a4b-it` (separate quota pool, slower);
 `VAVAGYM_LLM_MODEL` forces a single one. Without a key the AI buttons are disabled and everything else works; set `VAVAGYM_LLM=0` to switch the AI layer off even with a key.
 
 ---
@@ -199,7 +202,7 @@ Details in [`.claude/docs/data-report.md`](.claude/docs/data-report.md). The one
 - Enemy weak points are often empty against very strong opponents (not enough evidence to claim one).
 - AI mode is slow and depends on a free-tier quota; it always falls back to rules.
 - The chat understands the intents listed above, not arbitrary questions; anything else gets a "what I can do" answer. It has no Figma frame (it reuses the design tokens).
-- Laptop layout (1024 px and up); not tuned for phones.
+- Responsive: below 1024 px the sidebar becomes a drawer (☰ button), the filter chips scroll sideways, multi-column rows stack, cards form a 2-column grid and tables scroll horizontally inside their panel; checked at 360, 390 and 768 px. The kill-replay and heatmap minimaps scale down to the screen width.
 
 ## Contributing and project docs
 

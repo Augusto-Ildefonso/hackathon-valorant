@@ -76,7 +76,7 @@ export default function TeamPage() {
         <Link to="/times" className="hover:text-fg">Times</Link> › {t.team.name}
       </p>
 
-      <div className="flex items-center gap-5 rounded-md border border-border bg-surface px-6 py-5">
+      <div className="flex flex-wrap items-center gap-5 rounded-md border border-border bg-surface px-6 py-5">
         <div className="flex size-[72px] shrink-0 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-display text-[32px] font-bold leading-10 text-accent">{initials}</div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <h1 className="truncate font-display text-[32px] font-bold leading-10 text-fg">{t.team.name}</h1>
@@ -90,7 +90,7 @@ export default function TeamPage() {
         </Link>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 m-grid2">
         <StatCard label="Partidas" value={String(r.matches)} footnote={`${t.by_map.length} mapas diferentes`} />
         <StatCard label="% Rounds vencidos" value={pct(r.round_win_rate.value)} lowSample={r.round_win_rate.low_sample} footnote={`${int(roundsWon)} de ${int(r.round_win_rate.sample_size)} rounds`} />
         <StatCard label="Ataque" value={pct(r.attack_win_rate.value)} lowSample={r.attack_win_rate.low_sample} footnote="rounds como atacante" />
@@ -99,7 +99,7 @@ export default function TeamPage() {
         <StatCard label={site ? `Plante no site ${site[0]}` : "Plante"} value={site ? pct(site[1].value) : "—"} lowSample={site?.[1].low_sample} footnote="dos plantes realizados" />
       </div>
 
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 stack">
         <Panel className="flex-1" title="Elenco" subtitle="Função comportamental de cada jogador">
           <DataTable
             rows={t.roster.slice(0, 8)}
@@ -118,7 +118,7 @@ export default function TeamPage() {
         </Panel>
       </div>
 
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 stack">
         <Panel className="flex-[690]" title="Desempenho por mapa" subtitle="Rounds vencidos por lado">
           <DataTable
             rows={t.by_map}
@@ -167,7 +167,7 @@ export default function TeamPage() {
       </Panel>
 
       <InsightModeBar mode={mode} onChange={setMode} loading={isFetching && mode === "llm" && t.insights_source !== "llm"} source={t.insights_source} />
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel title="Pontos fortes"><InsightList insights={t.insights} kinds={["strength"]} /></Panel>
         <Panel title="Pontos fracos"><InsightList insights={t.insights} kinds={["weakness"]} /></Panel>
         <Panel title="Sugestões de melhoria"><InsightList insights={t.insights} kinds={["tip", "strategy"]} /></Panel>

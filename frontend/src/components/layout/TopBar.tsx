@@ -26,7 +26,7 @@ function SearchBox() {
   const close = () => setQ("");
   const none = data && !data.players.length && !data.teams.length && !data.maps.length;
   return (
-    <div className="relative w-[420px] max-w-full">
+    <div className="relative w-full">
       <div className="flex h-10 items-center gap-2 rounded-sm border border-border bg-surface px-4 text-fg-muted">
         <span className="font-display text-base font-semibold">⌕</span>
         <input
@@ -73,17 +73,23 @@ function SearchBox() {
   );
 }
 
-export function TopBar() {
+/** Desktop: one row (search left, filters right). Phone: menu button + search on the first row, the filter chips scroll sideways on the second. */
+export function TopBar({ onMenu }: { onMenu?: () => void }) {
   const { data: meta } = useMeta();
   const { filters, set } = useFilters();
   const maps: Option[] = [{ value: "", label: "Todos" }, ...(meta?.maps ?? []).map((m) => ({ value: m.name, label: m.name }))];
   return (
-    <div className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-bg-app px-8">
-      <SearchBox />
-      <div className="flex-1" />
-      <ChipSelect label="Torneio" value={filters.tournament ?? ""} options={tournamentOptions(meta)} onChange={(v) => set({ tournament: v || undefined })} />
-      <ChipSelect label="Mapa" value={filters.map ?? ""} options={maps} onChange={(v) => set({ map: v || undefined })} />
-      <ChipSelect label="Período" value={filters.period ?? ""} options={periodOptions(meta)} onChange={(v) => set({ period: v || undefined })} />
+    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-bg-app px-4 py-3 lg:h-16 lg:flex-nowrap lg:px-8 lg:py-0">
+      {onMenu && (
+        <button onClick={onMenu} aria-label="Abrir menu" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-border bg-surface text-lg text-fg lg:hidden">☰</button>
+      )}
+      <div className="min-w-0 flex-1 lg:w-[420px] lg:flex-initial"><SearchBox /></div>
+      <div className="hidden flex-1 lg:block" />
+      <div data-scroll-x className="-mx-4 flex w-[calc(100%+2rem)] gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:w-auto lg:gap-3 lg:overflow-visible lg:px-0 lg:pb-0">
+        <ChipSelect label="Torneio" value={filters.tournament ?? ""} options={tournamentOptions(meta)} onChange={(v) => set({ tournament: v || undefined })} />
+        <ChipSelect label="Mapa" value={filters.map ?? ""} options={maps} onChange={(v) => set({ map: v || undefined })} />
+        <ChipSelect label="Período" value={filters.period ?? ""} options={periodOptions(meta)} onChange={(v) => set({ period: v || undefined })} />
+      </div>
     </div>
   );
 }

@@ -34,7 +34,7 @@ export default function HomePage() {
         title="Campeonatos"
         subtitle={meta ? `Partidas customizadas de VALORANT · ${names} · ${dateBR(meta.date_from)} – ${dateBR(meta.date_to)}` : "Carregando…"}
       />
-      <div className="flex gap-4">
+      <div className="flex gap-4 m-grid2">
         <StatCard label="Partidas" value={k ? int(k.matches) : "—"} footnote="mapas jogados" />
         <StatCard label="Rounds" value={k ? int(k.rounds) : "—"} footnote={phases ? `em ${phases} torneios/fases` : undefined} />
         <StatCard label="Abates" value={k ? int(k.kills) : "—"} footnote={k ? `média ${num(k.kills / k.rounds, 1)} por round` : undefined} />
@@ -52,7 +52,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 stack">
         <TopPlayersPanel />
         <TopTeamsPanel />
       </div>
