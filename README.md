@@ -6,7 +6,7 @@ Built for the **SEMCOMP / AcadArena Hackathon** (delivery 23/10/2026). It analys
 tournaments (Rush Series and Univavá): 6,618 rounds, 46,753 kills and 411 players across 68 teams. The UI is in Portuguese (pt-BR);
 code, API and docs are in English.
 
-**Live demo: http://3.16.109.205** (AWS, HTTP; **currently stopped**, see [Deployed instance](#deployed-instance-aws) to start it again; the IP changes on restart). Works on phones and desktops.
+**Live demo: offline.** The AWS deployment was deleted on 2026-11-01 (it ran at http://3.16.109.205); see [Deployed instance](#deployed-instance-aws) for how it was built. The app runs locally with `make dev`. Works on phones and desktops.
 
 ![Campeonatos (the former Home, now at /campeonatos)](docs/screens/1-home.png)
 
@@ -142,7 +142,7 @@ Only three models are used, tried in order: `gemini-3.1-flash-lite` (fast), then
 
 ### Deployed instance (AWS)
 
-A demo runs on a single EC2 `t3.small` in `us-east-2` (nginx serves `frontend/dist` and proxies `/api` and the catalog `/assets` to uvicorn; systemd unit `vavagym`; port 80 only). The Gemini key is kept in SSM Parameter Store (SecureString `/vavagym/GEMINI_API_KEY`), read at service start by the instance role and never stored in the repo or the bundle, so the AI layer is on; the public site has no login or rate limit, so visitors share your free-tier quota. Peak backend memory is about 700 MB. When bundling the app on macOS use `COPYFILE_DISABLE=1 tar czf …` so no `._*` metadata files are packed. Resources are tagged `project=vavagym`; details and teardown steps are in `.claude/plans/mvp-plan.md`.
+The demo ran (until it was deleted on 2026-11-01) on a single EC2 `t3.small` in `us-east-2` (nginx serves `frontend/dist` and proxies `/api` and the catalog `/assets` to uvicorn; systemd unit `vavagym`; port 80 only). The Gemini key is kept in SSM Parameter Store (SecureString `/vavagym/GEMINI_API_KEY`), read at service start by the instance role and never stored in the repo or the bundle, so the AI layer is on; the public site has no login or rate limit, so visitors share your free-tier quota. Peak backend memory is about 700 MB. When bundling the app on macOS use `COPYFILE_DISABLE=1 tar czf …` so no `._*` metadata files are packed. Resources are tagged `project=vavagym`; details and teardown steps are in `.claude/plans/mvp-plan.md`.
 
 ## Tech stack
 
