@@ -6,7 +6,7 @@ Built for the **SEMCOMP / AcadArena Hackathon** (delivery 23/10/2026). It analys
 tournaments (Rush Series and Univavá): 6,618 rounds, 46,753 kills and 411 players across 68 teams. The UI is in Portuguese (pt-BR);
 code, API and docs are in English.
 
-**Live demo: http://3.16.109.205** (AWS, HTTP; see [Deployed instance](#deployed-instance-aws)). Works on phones and desktops.
+**Live demo: http://3.16.109.205** (AWS, HTTP; **currently stopped**, see [Deployed instance](#deployed-instance-aws) to start it again; the IP changes on restart). Works on phones and desktops.
 
 ![Campeonatos (the former Home, now at /campeonatos)](docs/screens/1-home.png)
 
